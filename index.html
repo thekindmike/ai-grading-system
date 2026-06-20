@@ -33,8 +33,8 @@
         <span class="icon">🤖</span>AI作业批改系统
     </div>
     <div class="navbar-tabs">
-        <button id="navStudent" class="active" onclick="switchRole('student')">📸 学生批改</button>
-        <button id="navTeacher" onclick="switchRole('teacher')">⚙️ 教师管理</button>
+        <button id="navStudent" class="active" onclick="_0x3248('student')">📸 学生批改</button>
+        <button id="navTeacher" onclick="_0x3248('teacher')">⚙️ 教师管理</button>
     </div>
 </nav>
 
@@ -57,8 +57,8 @@
         <div class="modal-title">📋 批改详情</div>
         <div id="detailModalContent"></div>
         <div class="modal-actions">
-            <button class="btn btn-outline" onclick="closeDetailModal()">关闭</button>
-            <button class="btn btn-danger btn-sm" id="detailDelBtn" onclick="deleteFromDetail()">删除记录</button>
+            <button class="btn btn-outline" onclick="_0xe4543()">关闭</button>
+            <button class="btn btn-danger btn-sm" id="detailDelBtn" onclick="_0x1b941()">删除记录</button>
         </div>
     </div>
 </div>
@@ -76,8 +76,8 @@
             <input class="input" type="number" id="examTotal" value="100" min="1">
         </div>
         <div class="modal-actions">
-            <button class="btn btn-outline" onclick="closeExamModal()">取消</button>
-            <button class="btn btn-primary" onclick="createExam()">创建</button>
+            <button class="btn btn-outline" onclick="_0x6d4ac()">取消</button>
+            <button class="btn btn-primary" onclick="_0x716eb()">创建</button>
         </div>
     </div>
 </div>
@@ -100,10 +100,10 @@
 
     <!-- 模式切换 -->
     <div class="mode-tabs">
-        <button class="mode-btn active" id="modeUploadBtn" onclick="triggerUpload()">
+        <button class="mode-btn active" id="modeUploadBtn" onclick="_0x71b7()">
             <span class="mode-icon">📁</span>上传图片
         </button>
-        <button class="mode-btn" id="modeCameraBtn" onclick="switchMode('camera')">
+        <button class="mode-btn" id="modeCameraBtn" onclick="_0x0eaad7('camera')">
             <span class="mode-icon">📷</span>拍照识别
         </button>
     </div>
@@ -123,7 +123,7 @@
         <div class="camera-wrap">
             <video id="cameraVideo" autoplay playsinline></video>
             <div class="camera-ctrl">
-                <button class="cam-btn" onclick="capturePhoto()"><div class="cam-inner"></div></button>
+                <button class="cam-btn" onclick="_0x15535()"><div class="cam-inner"></div></button>
             </div>
         </div>
     </div>
@@ -132,10 +132,10 @@
     <div class="card" id="previewSection" style="display:none;">
         <div class="card-header">
             <span class="card-title">📄 试卷预览</span>
-            <button class="btn btn-outline btn-sm" onclick="resetUpload()">重新选择</button>
+            <button class="btn btn-outline btn-sm" onclick="_0xf26305()">重新选择</button>
         </div>
         <img id="previewImage" style="max-width:100%;border-radius:var(--radius-sm);" alt="预览">
-        <button class="btn btn-primary btn-lg btn-block" style="margin-top:12px;" onclick="startGrading()">
+        <button class="btn btn-primary btn-lg btn-block" style="margin-top:12px;" onclick="_0x29658()">
             🤖 开始AI批改
         </button>
     </div>
@@ -146,7 +146,7 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">📊 批注对比</span>
-                <button class="btn btn-outline btn-sm" onclick="saveResultRecord()">💾 保存记录</button>
+                <button class="btn btn-outline btn-sm" onclick="_0x8f15de()">💾 保存记录</button>
             </div>
             <div id="annotatedImage"></div>
         </div>
@@ -160,7 +160,7 @@
     <div class="card" style="margin-top:20px;">
         <div class="card-header">
             <span class="card-title">📚 批改记录</span>
-            <button class="btn btn-danger btn-sm" onclick="clearAllHistory()">清空全部</button>
+            <button class="btn btn-danger btn-sm" onclick="_0x9974()">清空全部</button>
         </div>
         <div class="history-list" id="historyList">
             <div class="empty-state"><div class="empty-icon">📭</div><p>暂无批改记录</p></div>
@@ -173,16 +173,16 @@
 <!-- ============================== -->
 <div class="container" id="teacherPage" style="display:none;">
     <div class="tab-btns">
-        <button class="tab-btn active" onclick="switchTeacherTab('exams')">📝 试卷管理</button>
-        <button class="tab-btn" onclick="switchTeacherTab('questions')">📋 题目配置</button>
-        <button class="tab-btn" onclick="switchTeacherTab('results')">📊 批改记录</button>
+        <button class="tab-btn active" onclick="_0x04938('exams')">📝 试卷管理</button>
+        <button class="tab-btn" onclick="_0x04938('questions')">📋 题目配置</button>
+        <button class="tab-btn" onclick="_0x04938('results')">📊 批改记录</button>
     </div>
 
     <!-- 试卷管理 -->
     <div class="tab-content active" id="tabExams">
         <div class="card-header">
             <span class="card-title">所有试卷</span>
-            <button class="btn btn-primary btn-sm" onclick="showCreateExam()">+ 新建试卷</button>
+            <button class="btn btn-primary btn-sm" onclick="_0x2219()">+ 新建试卷</button>
         </div>
         <div class="table-wrap">
             <table>
@@ -202,8 +202,8 @@
         </div>
         <div id="questionsContainer"></div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-            <button class="btn btn-outline" onclick="addQuestionRow()">+ 添加题目</button>
-            <button class="btn btn-primary" onclick="saveAllQuestions()">💾 保存全部</button>
+            <button class="btn btn-outline" onclick="_0x3616d4()">+ 添加题目</button>
+            <button class="btn btn-primary" onclick="_0xd09cd3()">💾 保存全部</button>
         </div>
     </div>
 
@@ -211,7 +211,7 @@
     <div class="tab-content" id="tabResults">
         <div class="card-header">
             <span class="card-title">全部批改记录</span>
-            <button class="btn btn-danger btn-sm" onclick="clearAllHistory()">清空全部</button>
+            <button class="btn btn-danger btn-sm" onclick="_0x9974()">清空全部</button>
         </div>
         <div class="table-wrap">
             <table>
