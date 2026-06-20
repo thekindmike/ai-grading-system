@@ -50,12 +50,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 .btn-sm { padding:4px 10px; font-size:12px; }
 
 /* 上传区 */
-.upload-zone { border:3px dashed var(--border); border-radius:var(--radius); padding:40px 20px; text-align:center; cursor:pointer; transition:all .3s; background:var(--bg); }
+.upload-zone { border:3px dashed var(--border); border-radius:var(--radius); padding:40px 20px; text-align:center; cursor:pointer; transition:all .3s; background:var(--bg); position:relative; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .upload-zone:hover, .upload-zone.drag-over { border-color:var(--primary); background:#EEF2FF; }
 .upload-zone .upload-icon { font-size:48px; display:block; margin-bottom:8px; }
 .upload-zone .upload-text { font-size:15px; color:var(--text-secondary); }
 .upload-zone .upload-hint { font-size:12px; color:#94A3B8; margin-top:4px; }
-.upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.upload-zone input[type=file] { display:none; }
 
 /* 模式切换 */
 .mode-tabs { display:flex; gap:8px; margin-bottom:14px; }
@@ -263,7 +263,7 @@ tr:hover td { background:#F8FAFC; }
 
     <!-- 上传模式 -->
     <div id="modeUpload">
-        <div class="upload-zone" id="uploadZone" style="position:relative;">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <span class="upload-icon">📤</span>
             <div class="upload-text">点击或拖拽试卷图片到此处</div>
             <div class="upload-hint">支持 JPG、PNG 格式，建议清晰拍摄</div>
@@ -520,9 +520,15 @@ function switchMode(mode) {
 // ============================================
 function setupDragDrop() {
     const zone = document.getElementById('uploadZone');
-    ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag-over'); }));
-    ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('drag-over'); }));
-    zone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+    if (!zone) return;
+    ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('drag-over'); }));
+    ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('drag-over'); }));
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const f = e.dataTransfer.files[0];
+        if (f) handleFile(f);
+    });
 }
 
 function handleFileSelect(e) { const f = e.target.files[0]; if (f) handleFile(f); }
