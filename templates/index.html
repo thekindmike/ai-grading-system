@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI作业批改系统 - 学生端</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- 导航栏 -->
+<nav class="navbar">
+    <a href="/" class="navbar-brand">
+        <span class="icon">📝</span> AI作业批改系统
+    </a>
+    <div class="navbar-nav">
+        <a href="/" class="active">📋 学生端</a>
+        <a href="/teacher">⚙️ 教师端</a>
+    </div>
+</nav>
+
+<!-- 主容器 -->
+<div class="container">
+
+    <!-- 标题 -->
+    <div class="card" style="background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); color: white; border: none;">
+        <h1 style="font-size: 24px; margin-bottom: 6px;">📸 AI智能作业批改</h1>
+        <p style="opacity: 0.9; font-size: 14px;">拍照或上传试卷，AI自动识别答案并批改打分，标注错题</p>
+    </div>
+
+    <!-- 模式切换 -->
+    <div class="mode-tabs">
+        <button class="mode-btn active" onclick="switchMode('upload')">
+            <span class="mode-icon">📁</span> 上传图片
+        </button>
+        <button class="mode-btn" onclick="switchMode('camera')">
+            <span class="mode-icon">📷</span> 拍照识别
+        </button>
+    </div>
+
+    <!-- 选项卡 -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('grade')">✏️ 开始批改</button>
+        <button class="tab-btn" onclick="switchTab('history')">📚 批改历史</button>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 批改页面 -->
+    <!-- ============================================ -->
+    <div id="tab-grade" class="tab-content active">
+
+        <!-- 试卷选择 -->
+        <div class="card">
+            <div class="form-group">
+                <label class="form-label">选择试卷</label>
+                <select id="examSelect" class="select">
+                    <option value="demo_exam_01">七年级地理-巴西章节测试</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 上传模式 -->
+        <div id="mode-upload" class="upload-section">
+            <div class="card">
+                <div class="upload-zone" id="uploadZone">
+                    <span class="upload-icon">📤</span>
+                    <div class="upload-text">点击上传或拖拽试卷图片到此处</div>
+                    <div class="upload-hint">支持 JPG、PNG 格式，建议清晰拍摄</div>
+                    <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+                </div>
+            </div>
+        </div>
+
+        <!-- 拍照模式 -->
+        <div id="mode-camera" class="upload-section" style="display:none;">
+            <div class="card">
+                <div class="camera-container">
+                    <video id="cameraVideo" autoplay playsinline></video>
+                    <div class="camera-overlay">
+                        <button class="camera-btn" onclick="capturePhoto()" title="拍照">
+                            <span class="inner"></span>
+                        </button>
+                    </div>
+                </div>
+                <div style="text-align:center; margin-top: 12px;">
+                    <button class="btn btn-outline" onclick="stopCamera()">关闭摄像头</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 预览 -->
+        <div id="previewSection" class="card" style="display:none;">
+            <div class="card-header">
+                <span class="card-title">📷 图片预览</span>
+                <button class="btn btn-outline" onclick="resetUpload()">重新选择</button>
+            </div>
+            <img id="previewImage" class="preview-image" alt="预览">
+            <div style="margin-top: 16px;">
+                <div class="form-group">
+                    <label class="form-label">学生姓名（选填）</label>
+                    <input type="text" id="studentName" class="input" placeholder="输入姓名">
+                </div>
+                <button class="btn btn-primary btn-lg btn-block" onclick="startGrading()">
+                    🚀 开始AI批改
+                </button>
+            </div>
+        </div>
+
+        <!-- 批改结果 -->
+        <div id="resultPanel" class="result-panel">
+            <div class="card">
+                <div id="scoreDisplay"></div>
+                <div id="annotatedImage"></div>
+                <div id="detailsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 历史记录页面 -->
+    <!-- ============================================ -->
+    <div id="tab-history" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📚 批改记录</span>
+                <button class="btn btn-outline" onclick="loadHistory()">🔄 刷新</button>
+            </div>
+            <div id="historyList" class="history-list">
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <p>暂无批改记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 处理中遮罩 -->
+<div class="processing-overlay" id="processingOverlay">
+    <div class="processing-card">
+        <div class="spinner"></div>
+        <div class="processing-text" id="processingText">正在识别试卷文字...</div>
+        <div class="processing-step" id="processingStep"></div>
+    </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <div class="modal-title">📋 批改详情</div>
+        <div id="detailModalContent"></div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeDetailModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

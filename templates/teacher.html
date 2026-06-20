@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI作业批改系统 - 教师管理端</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- 导航栏 -->
+<nav class="navbar">
+    <a href="/" class="navbar-brand">
+        <span class="icon">📝</span> AI作业批改系统
+    </a>
+    <div class="navbar-nav">
+        <a href="/">📋 学生端</a>
+        <a href="/teacher" class="active">⚙️ 教师端</a>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- 标题 -->
+    <div class="card" style="background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%); color: white; border: none;">
+        <h1 style="font-size: 24px; margin-bottom: 6px;">⚙️ 教师管理面板</h1>
+        <p style="opacity: 0.9; font-size: 14px;">管理试卷、配置参考答案、查看批改记录</p>
+    </div>
+
+    <!-- 选项卡 -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTeacherTab('exams')">📋 试卷管理</button>
+        <button class="tab-btn" onclick="switchTeacherTab('questions')">📝 题目配置</button>
+        <button class="tab-btn" onclick="switchTeacherTab('results')">📊 批改记录</button>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 试卷管理 -->
+    <!-- ============================================ -->
+    <div id="teacher-tab-exams" class="tab-content active">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📋 试卷列表</span>
+                <button class="btn btn-primary" onclick="showCreateExamModal()">+ 新建试卷</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>试卷名称</th>
+                            <th>总分</th>
+                            <th>题目数</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="examTableBody">
+                        <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 题目配置 -->
+    <!-- ============================================ -->
+    <div id="teacher-tab-questions" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📝 题目配置</span>
+                <div style="display:flex;gap:8px;">
+                    <select id="questionExamSelect" class="select" style="width:auto;" onchange="loadQuestions()">
+                        <option value="">选择试卷...</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addQuestionRow()">+ 添加题目</button>
+                    <button class="btn btn-outline" onclick="saveAllQuestions()">💾 保存全部</button>
+                </div>
+            </div>
+            <div id="questionsContainer">
+                <div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <p>请先选择一份试卷</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 批改记录 -->
+    <!-- ============================================ -->
+    <div id="teacher-tab-results" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📊 批改记录总览</span>
+                <button class="btn btn-outline" onclick="loadTeacherResults()">🔄 刷新</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>学生姓名</th>
+                            <th>试卷</th>
+                            <th>得分</th>
+                            <th>批改时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherResultBody">
+                        <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 新建试卷弹窗 -->
+<div class="modal-overlay" id="examModal">
+    <div class="modal">
+        <div class="modal-title">📋 新建试卷</div>
+        <div class="form-group">
+            <label class="form-label">试卷名称</label>
+            <input type="text" id="examName" class="input" placeholder="例如：七年级地理-巴西章节测试">
+        </div>
+        <div class="form-group">
+            <label class="form-label">总分</label>
+            <input type="number" id="examTotalScore" class="input" value="100" min="1">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeExamModal()">取消</button>
+            <button class="btn btn-primary" onclick="createExam()">创建</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/teacher.js"></script>
+</body>
+</html>
