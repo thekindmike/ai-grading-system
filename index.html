@@ -89,7 +89,12 @@
     <!-- 试卷选择 -->
     <div class="form-group" style="margin-bottom:12px;">
         <label class="form-label">选择试卷</label>
-        <select class="select" id="examSelect" onchange="onExamChange()"></select>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <select class="select" id="examSelect" onchange="_0x7626e()" style="flex:1;"></select>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('examFileInput').click()" title="导入试卷文件（JSON格式）">📥 导入</button>
+            <input type="file" id="examFileInput" accept=".json,application/json" style="display:none;" onchange="_0x4e8c2f(event)">
+        </div>
+        <div class="upload-hint" style="margin-top:4px;font-size:11px;color:#94A3B8;">支持导入 JSON 格式试卷文件，或到教师端创建新试卷</div>
     </div>
 
     <!-- 姓名输入 -->
@@ -310,18 +315,49 @@ const sel1 = document.getElementById('examSelect');
 const sel2 = document.getElementById('questionExamSelect');
 const html = _0xce18e9.exams.map(e => `<option value="${e.id}">${e.name} (${e.total_score}分)</option>`).join('');
 if (_0xce18e9.exams.length === 0) {
-sel1.innerHTML = '<option value="">暂无试卷，请先到教师端创建</option>';
+sel1.innerHTML = '<option value="">暂无试卷，请点击「导入」或到教师端创建</option>';
 } else {
-sel1.innerHTML = html;
+sel1.innerHTML = html + '<option value="" style="color:#6366f1;">📥 导入新试卷...</option>';
 }
 sel2.innerHTML = '<option value="">-- 选择一份试卷 --</option>' + html;
 }
 function _0x7626e() {
 const examId = document.getElementById('examSelect').value;
+if (examId === '' && document.getElementById('examSelect').selectedIndex === document.getElementById('examSelect').options.length - 1) {
+document.getElementById('examSelect').selectedIndex = 0;
+document.getElementById('examFileInput').click(); return;
+}
 const exam = _0xd835(examId);
 if (exam) {
 _0xcf33b(`已选择「${exam.name}」，共 ${exam.questions.length} 题 ${exam.total_score} 分`, 'info');
 }
+}
+// 导入试卷文件（JSON格式）
+function _0x4e8c2f(event) {
+const file = event.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = function(e) {
+try {
+const data = JSON.parse(e.target.result);
+if (!data.name || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+_0xcf33b('试卷格式错误：需要包含 name（名称）和 questions（题目数组）', 'error'); return;
+}
+data.id = 'imported_' + Date.now();
+data.created_at = new Date().toLocaleString('zh-CN');
+if (!data.total_score) { data.total_score = data.questions.reduce((s,q)=>s+(q.score||q.points||10),0); }
+data.questions.forEach(function(q,i){ if(!q.id) q.id = data.id + '_q' + (i+1); });
+_0xce18e9.exams.push(data);
+_0xbef990();
+_0x5f512();
+document.getElementById('examSelect').value = data.id;
+_0x7626e();
+_0xcf33b(`✅ 试卷「${data.name}」导入成功！共 ${data.questions.length} 题 ${data.total_score} 分`, 'success');
+} catch(err) {
+_0xcf33b('JSON解析失败，请检查文件格式是否正确', 'error'); }
+};
+reader.readAsText(file, 'utf-8');
+event.target.value = '';
 }
 function _0x0eaad7(mode) {
 _0x6493 = mode;
