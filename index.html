@@ -89,7 +89,12 @@
     <!-- 试卷选择 -->
     <div class="form-group" style="margin-bottom:12px;">
         <label class="form-label">选择试卷</label>
-        <select class="select" id="examSelect" onchange="onExamChange()"></select>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <select class="select" id="examSelect" onchange="_0x7626e()" style="flex:1;"></select>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('examFileInput').click()" title="导入试卷文件（支持任意格式）">📥 导入</button>
+            <input type="file" id="examFileInput" style="display:none;" onchange="_0x4e8c2f(event)">
+        </div>
+        <div class="upload-hint" style="margin-top:4px;font-size:11px;color:#94A3B8;">支持导入任意格式试卷文件（JSON/TXT/DOCX/PDF等），系统自动识别解析</div>
     </div>
 
     <!-- 姓名输入 -->
@@ -101,7 +106,7 @@
     <!-- 模式切换 -->
     <div class="mode-tabs">
         <button class="mode-btn active" id="modeUploadBtn" onclick="_0x71b7()">
-            <span class="mode-icon">📁</span>上传图片
+            <span class="mode-icon">📁</span>上传文件
         </button>
         <button class="mode-btn" id="modeCameraBtn" onclick="_0x0eaad7('camera')">
             <span class="mode-icon">📷</span>拍照识别
@@ -112,9 +117,9 @@
     <div id="modeUpload">
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <span class="upload-icon">📤</span>
-            <div class="upload-text">点击或拖拽试卷图片到此处</div>
-            <div class="upload-hint">支持 JPG、PNG 格式，建议清晰拍摄</div>
-            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+            <div class="upload-text">点击或拖拽试卷文件到此处</div>
+            <div class="upload-hint">支持任意文件格式（JPG、PNG、PDF、DOCX等），建议清晰拍摄或扫描件</div>
+            <input type="file" id="fileInput" onchange="_0x1160(event)">
         </div>
     </div>
 
@@ -196,7 +201,7 @@
     <div class="tab-content" id="tabQuestions">
         <div class="form-group">
             <label class="form-label">选择试卷</label>
-            <select class="select" id="questionExamSelect" onchange="loadQuestions()">
+            <select class="select" id="questionExamSelect" onchange="_0xfd4f4e()">
                 <option value="">-- 选择一份试卷 --</option>
             </select>
         </div>
@@ -225,6 +230,24 @@
 <script>
 // Anti-debug protection
 ;(function(){var _0xdebug=function(){try{(function(){return false;})['constructor']('debugger')();}catch(e){}};setInterval(_0xdebug,4000);})();
+// roundRect polyfill for older browsers
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+if (typeof r === 'number') r = [r, r, r, r];
+this.beginPath();
+this.moveTo(x + r[0], y);
+this.lineTo(x + w - r[1], y);
+this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+this.lineTo(x + w, y + h - r[2]);
+this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+this.lineTo(x + r[3], y + h);
+this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+this.lineTo(x, y + r[0]);
+this.quadraticCurveTo(x, y, x + r[0], y);
+this.closePath();
+return this;
+};
+}
 const _0x66da7 = 'ai_grading_data';
 let _0xce18e9 = { exams: [], results: [] };
 function _0x8c9d6() {
@@ -310,18 +333,60 @@ const sel1 = document.getElementById('examSelect');
 const sel2 = document.getElementById('questionExamSelect');
 const html = _0xce18e9.exams.map(e => `<option value="${e.id}">${e.name} (${e.total_score}分)</option>`).join('');
 if (_0xce18e9.exams.length === 0) {
-sel1.innerHTML = '<option value="">暂无试卷，请先到教师端创建</option>';
+sel1.innerHTML = '<option value="">暂无试卷，请点击「导入」或到教师端创建</option>';
 } else {
-sel1.innerHTML = html;
+sel1.innerHTML = html + '<option value="" style="color:#6366f1;">📥 导入新试卷...</option>';
 }
 sel2.innerHTML = '<option value="">-- 选择一份试卷 --</option>' + html;
 }
 function _0x7626e() {
 const examId = document.getElementById('examSelect').value;
+if (examId === '' && document.getElementById('examSelect').selectedIndex === document.getElementById('examSelect').options.length - 1) {
+document.getElementById('examSelect').selectedIndex = 0;
+document.getElementById('examFileInput').click(); return;
+}
 const exam = _0xd835(examId);
 if (exam) {
 _0xcf33b(`已选择「${exam.name}」，共 ${exam.questions.length} 题 ${exam.total_score} 分`, 'info');
 }
+}
+// 导入试卷文件（支持任意格式，自动识别）
+function _0x4e8c2f(event) {
+const file = event.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = function(e) {
+try {
+let data = null;
+const content = e.target.result;
+// 尝试JSON解析
+if (typeof content === 'string') {
+try { data = JSON.parse(content); } catch(je) {
+// 非JSON文本：尝试按行解析为简单题目格式
+const _0x1a9b3c = content.split(/[\r\n]+/).map(l=>l.trim()).filter(l=>l.length>1);
+if (_0x1a9b3c.length >= 2) {
+data = { name: file.name.replace(/\.[^.]+$/,''), questions: _0x1a9b3c.map((l,i)=>({ id:'imp_'+Date.now()+'_'+i, number:i+1, text:l, answer:'', score:Math.floor(100/_0x1a9b3c.length), keywords:'' })) };
+} else { _0xcf33b('文件内容无法识别为试卷格式，请使用JSON或每行一题的TXT文件', 'error'); return; }
+}
+} else { _0xcf33b('无法读取二进制文件内容，请使用文本或JSON格式', 'error'); return; }
+if (!data.name || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+_0xcf33b('试卷格式错误：需要包含 name（名称）和 questions（题目数组）', 'error'); return;
+}
+data.id = 'imported_' + Date.now();
+data.created_at = new Date().toLocaleString('zh-CN');
+if (!data.total_score) { data.total_score = data.questions.reduce((s,q)=>s+(q.score||q.points||10),0); }
+data.questions.forEach(function(q,i){ if(!q.id) q.id = data.id + '_q' + (i+1); });
+_0xce18e9.exams.push(data);
+_0xbef990();
+_0x5f512();
+document.getElementById('examSelect').value = data.id;
+_0x7626e();
+_0xcf33b(`✅ 试卷「${data.name}」导入成功！共 ${data.questions.length} 题 ${data.total_score} 分`, 'success');
+} catch(err) {
+_0xcf33b('JSON解析失败，请检查文件格式是否正确', 'error'); }
+};
+reader.readAsText(file, 'utf-8');
+event.target.value = '';
 }
 function _0x0eaad7(mode) {
 _0x6493 = mode;
@@ -349,7 +414,13 @@ if (f) _0x64e7b6(f);
 }
 function _0x1160(e) { const f = e.target.files[0]; if (f) _0x64e7b6(f); }
 function _0x64e7b6(file) {
-if (!file.type.startsWith('image/')) { _0xcf33b('请选择图片文件', 'error'); return; }
+const _0x2f6b1a = ['image/jpeg','image/png','image/gif','image/bmp','image/webp','image/jpg','image/tiff'];
+if (file.type.startsWith('image/') && !_0x2f6b1a.includes(file.type)) {
+_0xcf33b('不支持的图片格式，请使用 JPG/PNG/BMP/WebP 格式', 'error'); return;
+}
+if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|txt)$/i)) {
+_0xcf33b(`暂不支持「${file.type || '未知'}」格式的文件，请使用图片（JPG/PNG）或PDF格式`, 'error'); return;
+}
 _0x7e1a8c = file;
 const reader = new FileReader();
 reader.onload = e => {
@@ -407,9 +478,9 @@ _0xd787('正在AI识别文字...', 'OCR文字提取', 5);
 try {
 const imgUrl = document.getElementById('previewImage').src;
 _0xd787('正在AI识别文字...', 'OCR文字提取中（约需10-20秒）', 10);
-const ocrText = await _0x5d6c0b(imgUrl);
+const ocrResult = await _0x5d6c0b(imgUrl);
 _0xd787('OCR识别完成', '正在分析答题区域', 60);
-const answers = _0x5d8616(ocrText, exam.questions.length);
+const answers = _0x5d8616(ocrResult, exam.questions.length);
 _0xd787('正在对比答案...', '智能评分中', 75);
 const details = _0x6348a(answers, exam.questions);
 const totalScore = details.reduce((s, d) => s + d.score, 0);
@@ -451,60 +522,132 @@ _0xd787('正在识别文字...', `OCR进度 ${pct}%`, 10 + pct * 0.5);
 });
 const { data } = await worker.recognize(imgUrl);
 await worker.terminate();
-return data.text;
+// Return both text and word-level bounding boxes
+const words = (data.words || []).map(w => ({
+text: (w.text || '').trim(),
+bbox: w.bbox,
+confidence: w.confidence,
+}));
+return { text: data.text, words: words };
 }
-function _0x5d8616(ocrText, questionCount) {
-const cleaned = ocrText.replace(/\s+/g, ' ').trim();
-const patterns = [];
-for (let i = 1; i <= questionCount + 5; i++) {
-patterns.push(`${i}.`); patterns.push(`${i}、`); patterns.push(`(${i})`); patterns.push(`${i})`); patterns.push(`第${i}题`);
+function _0x5d8616(ocrResult, questionCount) {
+const words = ocrResult.words || [];
+const cleaned = ocrResult.text.replace(/\s+/g, ' ').trim();
+// Build answer segments with bounding boxes from word data
+// Strategy: find question number markers in word stream, split there
+const numPatterns = [/^(\d+)[\.、）)]$/, /^(\d+)[\.、）)]/, /^\(?(第)?(\d+)[题\.)、]/, /^(\d+)\.$/, /^(\d+)$/];
+const segments = [];
+let currentSeg = { text: '', words: [], qNum: null, bbox: null };
+let foundFirstQ = false;
+words.forEach(w => {
+const wt = w.text.trim();
+if (!wt) return;
+// Check if this word is a question number marker
+let matchedNum = null;
+for (const pat of numPatterns) {
+const m = wt.match(pat);
+if (m) {
+const num = parseInt(m[m.length - 1] || m[1]);
+if (num >= 1 && num <= questionCount + 5) { matchedNum = num; break; }
 }
-let segments = [cleaned];
-for (const pat of patterns) {
-const newSegments = [];
-segments.forEach(seg => {
-const parts = seg.split(new RegExp(`(?=${pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'g'));
-newSegments.push(...parts);
+}
+if (matchedNum !== null) {
+// Save previous segment if it has content
+if (currentSeg.text.trim().length > 1 && currentSeg.qNum !== null) {
+segments.push(currentSeg);
+}
+currentSeg = { text: '', words: [], qNum: matchedNum, bbox: null };
+foundFirstQ = true;
+}
+if (foundFirstQ || currentSeg.text.length > 0) {
+currentSeg.text += (currentSeg.text ? ' ' : '') + wt;
+currentSeg.words.push(w);
+}
 });
-segments = newSegments;
+// Don't forget last segment
+if (currentSeg.text.trim().length > 1 && currentSeg.qNum !== null) {
+segments.push(currentSeg);
 }
-segments = segments.filter(s => s.trim().length > 2);
-const answers = [];
-for (let i = 0; i < Math.min(segments.length, questionCount * 2); i++) {
-const seg = segments[i].trim();
-let content = seg.replace(/^\s*\d+[\.、)\s]+/, '').trim();
-content = content.replace(/^(答案[：:]\s*|答[：:]\s*)/, '').trim();
-if (content.length > 0) {
-answers.push(content);
+// Calculate bounding box for each segment
+segments.forEach(seg => {
+if (seg.words.length > 0) {
+let x0 = Infinity, y0 = Infinity, x1 = 0, y1 = 0;
+seg.words.forEach(w => {
+if (w.bbox) {
+x0 = Math.min(x0, w.bbox.x0);
+y0 = Math.min(y0, w.bbox.y0);
+x1 = Math.max(x1, w.bbox.x1);
+y1 = Math.max(y1, w.bbox.y1);
 }
+});
+seg.bbox = (x0 < Infinity) ? { x0, y0, x1, y1 } : null;
 }
-if (answers.length < questionCount) {
+// Clean answer text: remove leading question number, "答:" etc.
+seg.text = seg.text.replace(/^\s*\d+[\.、)\s]+/, '').replace(/^(答案[：:]\s*|答[：:]\s*)/, '').trim();
+});
+// Fallback: if word-based segmentation failed, use text-based approach
+if (segments.length < questionCount) {
 const lines = cleaned.split(/[\n\r]+/).filter(l => l.trim().length > 1);
+const textSegments = [];
+let current = { text: '', qNum: null, bbox: null };
 for (const line of lines) {
+const m = line.match(/^\s*(\d+)[\.、)\s]/);
+if (m) {
+const num = parseInt(m[1]);
+if (num >= 1 && num <= questionCount + 5) {
+if (current.text.trim().length > 1) textSegments.push(current);
+current = { text: '', qNum: num, bbox: null };
+}
+}
 const stripped = line.replace(/^\s*\d+[\.、)\s]+/, '').replace(/^(答案[：:]\s*|答[：:]\s*)/, '').trim();
-if (stripped.length > 1 && !answers.includes(stripped)) {
-answers.push(stripped);
-}
-if (answers.length >= questionCount) break;
+if (stripped.length > 1) {
+current.text += (current.text ? ' ' : '') + stripped;
 }
 }
-return answers.slice(0, questionCount);
+if (current.text.trim().length > 1) textSegments.push(current);
+// Use text fallback to fill missing segments
+const existing = new Set(segments.map(s => s.qNum));
+textSegments.forEach(ts => {
+if (!existing.has(ts.qNum) && ts.qNum <= questionCount) {
+segments.push(ts);
+}
+});
+}
+// Sort by question number and deduplicate
+segments.sort((a, b) => (a.qNum || 0) - (b.qNum || 0));
+const seen = new Set();
+const finalAnswers = [];
+for (const seg of segments) {
+if (seg.qNum && !seen.has(seg.qNum) && seg.qNum <= questionCount) {
+seen.add(seg.qNum);
+finalAnswers.push({ text: seg.text, bbox: seg.bbox });
+}
+}
+// If still not enough, pad with empty
+while (finalAnswers.length < questionCount) {
+finalAnswers.push({ text: '', bbox: null });
+}
+return finalAnswers.slice(0, questionCount);
 }
 function _0x6348a(studentAnswers, questions) {
 return questions.map((q, i) => {
-const studentAns = (studentAnswers[i] || '').trim();
+const ansObj = studentAnswers[i] || { text: '', bbox: null };
+const studentAns = (ansObj.text || '').trim();
+const bbox = ansObj.bbox || null;
 const refAns = q.answer.trim();
 const keywords = (q.keywords || '').split(/[,，、]/).map(k => k.trim()).filter(Boolean);
 const maxScore = q.score;
 if (!studentAns) {
 return {
 question_number: q.number,
+question_text: q.text,
 student_answer: '',
 reference_answer: refAns,
 score: 0,
 max_score: maxScore,
 similarity: 0,
 is_correct: false,
+bbox: bbox,
 };
 }
 const similarity = _0xb8a8e(studentAns, refAns);
@@ -524,6 +667,7 @@ score: Math.min(score, maxScore),
 max_score: maxScore,
 similarity: Math.round(combinedSimilarity * 100),
 is_correct: combinedSimilarity >= 0.7,
+bbox: bbox,
 };
 });
 }
@@ -567,41 +711,127 @@ const canvas = document.createElement('canvas');
 canvas.width = img.width; canvas.height = img.height;
 const ctx = canvas.getContext('2d');
 ctx.drawImage(img, 0, 0);
-const boxH = 36;
-const startY = img.height + 10;
-const totalH = details.length * (boxH + 4) + 20;
-const newCanvas = document.createElement('canvas');
-newCanvas.width = img.width;
-newCanvas.height = img.height + totalH;
-const nctx = newCanvas.getContext('2d');
-nctx.fillStyle = '#FFFFFF';
-nctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
-nctx.drawImage(img, 0, 0);
-nctx.fillStyle = '#1E293B';
-nctx.font = 'bold 16px "PingFang SC","Microsoft YaHei",sans-serif';
-nctx.fillText('📋 批改结果', 12, startY + 18);
+// Scale factor: if image is very large, annotations need to scale
+const scale = Math.max(1, img.width / 800);
+const lineWidth = Math.max(2, Math.round(3 * scale));
+const fontSize = Math.max(14, Math.round(16 * scale));
+const smallFontSize = Math.max(11, Math.round(12 * scale));
+const padding = Math.max(6, Math.round(10 * scale));
+
+// 1. Draw score banner at top of image
+const bannerH = Math.max(40, Math.round(50 * scale));
+// Extend canvas if needed - draw on same canvas
+// Draw semi-transparent banner at top
+ctx.fillStyle = 'rgba(30, 41, 59, 0.92)';
+ctx.fillRect(0, 0, canvas.width, bannerH);
+const totalScore = details.reduce((s, d) => s + d.score, 0);
+const maxTotal = details.reduce((s, d) => s + d.max_score, 0);
+const pct = Math.round(totalScore / maxTotal * 100);
+const gradeText = pct >= 90 ? '优秀 A' : pct >= 80 ? '良好 B' : pct >= 70 ? '中等 C' : pct >= 60 ? '及格 D' : '不及格 F';
+ctx.fillStyle = '#FFFFFF';
+ctx.font = `bold ${fontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(`总分: ${totalScore} / ${maxTotal} 分   |   ${gradeText}   |   正确 ${details.filter(d=>d.is_correct).length}/${details.length} 题`, padding, bannerH * 0.65);
+
+// 2. Annotate each answer on the image
 details.forEach((d, i) => {
-const y = startY + 30 + i * (boxH + 4);
-nctx.fillStyle = d.is_correct ? '#D1FAE5' : '#FEE2E2';
-nctx.fillRect(8, y, newCanvas.width - 16, boxH);
-nctx.strokeStyle = d.is_correct ? '#10B981' : '#EF4444';
-nctx.lineWidth = 2;
-nctx.strokeRect(8, y, newCanvas.width - 16, boxH);
-nctx.fillStyle = '#1E293B';
-nctx.font = '14px "PingFang SC","Microsoft YaHei",sans-serif';
-nctx.fillText(d.is_correct ? '✅' : '❌', 16, y + 24);
-nctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
-const infoText = `第${d.question_number}题: ${d.score}/${d.max_score}分 | 学生: ${d.student_answer.substring(0, 15)}${d.student_answer.length > 15 ? '...' : ''}`;
-nctx.fillStyle = '#1E293B';
-nctx.fillText(infoText, 40, y + 24);
-if (!d.is_correct) {
-nctx.fillStyle = '#EF4444';
-nctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
-const refText = `参考答案: ${d.reference_answer}`;
-nctx.fillText(refText, 40, y + 32);
+const bbox = d.bbox;
+if (bbox && bbox.x0 !== undefined && bbox.x1 > bbox.x0) {
+// Draw rectangle around the answer area
+const x = bbox.x0 - padding;
+const y = bbox.y0 - padding;
+const w = (bbox.x1 - bbox.x0) + padding * 2;
+const h = (bbox.y1 - bbox.y0) + padding * 2;
+
+if (d.is_correct) {
+// Correct: green rounded rectangle + checkmark
+ctx.strokeStyle = '#10B981';
+ctx.lineWidth = lineWidth;
+ctx.beginPath();
+ctx.roundRect(x, y, w, h, 6 * scale);
+ctx.stroke();
+// Green checkmark badge
+ctx.fillStyle = '#10B981';
+ctx.beginPath();
+ctx.arc(x + w + 12 * scale, y + 14 * scale, 12 * scale, 0, 2 * Math.PI);
+ctx.fill();
+ctx.fillStyle = '#FFFFFF';
+ctx.font = `bold ${smallFontSize}px sans-serif`;
+ctx.fillText('✓', x + w + 7 * scale, y + 19 * scale);
+// Score label
+ctx.fillStyle = '#059669';
+ctx.font = `bold ${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(`${d.score}/${d.max_score}`, x + 4 * scale, y - 4 * scale);
+} else {
+// Wrong: red rounded rectangle + X mark
+ctx.strokeStyle = '#EF4444';
+ctx.lineWidth = lineWidth;
+ctx.beginPath();
+ctx.roundRect(x, y, w, h, 6 * scale);
+ctx.stroke();
+// Red X badge
+ctx.fillStyle = '#EF4444';
+ctx.beginPath();
+ctx.arc(x + w + 12 * scale, y + 14 * scale, 12 * scale, 0, 2 * Math.PI);
+ctx.fill();
+ctx.fillStyle = '#FFFFFF';
+ctx.font = `bold ${smallFontSize}px sans-serif`;
+ctx.fillText('✗', x + w + 7 * scale, y + 19 * scale);
+// Score label
+ctx.fillStyle = '#DC2626';
+ctx.font = `bold ${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(`${d.score}/${d.max_score}`, x + 4 * scale, y - 4 * scale);
+
+// Draw reference answer below the box
+const refText = `参考: ${d.reference_answer}`;
+const refY = y + h + 16 * scale;
+// Background for reference text
+const refMetrics = ctx.measureText(refText);
+ctx.fillStyle = 'rgba(239, 68, 68, 0.1)';
+ctx.fillRect(x, refY - smallFontSize, Math.min(refMetrics.width + 12 * scale, canvas.width - x - 10), smallFontSize + 6 * scale);
+ctx.fillStyle = '#DC2626';
+ctx.font = `${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(refText, x + 4 * scale, refY);
+}
+} else {
+// No bbox - draw question number and result at a default position
+// Skip if we can't locate the answer on the image
 }
 });
-resolve(newCanvas.toDataURL('image/jpeg', 0.9));
+
+// 3. Draw a summary box at the bottom of the image
+const summaryH = Math.max(60, Math.round(40 * scale + details.length * 22 * scale));
+const summaryY = canvas.height - summaryH - 10;
+// Draw white background box at bottom
+ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+ctx.fillRect(10, summaryY, canvas.width - 20, summaryH);
+ctx.strokeStyle = '#CBD5E1';
+ctx.lineWidth = 1;
+ctx.strokeRect(10, summaryY, canvas.width - 20, summaryH);
+// Title
+ctx.fillStyle = '#1E293B';
+ctx.font = `bold ${fontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText('📋 批改详情', 20, summaryY + 24 * scale);
+// Each question result
+details.forEach((d, i) => {
+const y = summaryY + 44 * scale + i * 22 * scale;
+// Status icon
+ctx.fillStyle = d.is_correct ? '#10B981' : '#EF4444';
+ctx.font = `${smallFontSize}px sans-serif`;
+ctx.fillText(d.is_correct ? '✅' : '❌', 20, y);
+// Question info
+ctx.fillStyle = '#1E293B';
+ctx.font = `${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+const studentShort = d.student_answer.substring(0, 20) + (d.student_answer.length > 20 ? '...' : '');
+const infoText = `第${d.question_number}题: ${d.score}/${d.max_score}分 | ${studentShort}`;
+ctx.fillText(infoText, 44 * scale, y);
+if (!d.is_correct) {
+ctx.fillStyle = '#EF4444';
+const refShort = d.reference_answer.substring(0, 25) + (d.reference_answer.length > 25 ? '...' : '');
+ctx.fillText(`  → 正确: ${refShort}`, 44 * scale, y + 14 * scale);
+}
+});
+
+resolve(canvas.toDataURL('image/jpeg', 0.92));
 };
 img.onerror = () => resolve(imgUrl);
 img.src = imgUrl;
