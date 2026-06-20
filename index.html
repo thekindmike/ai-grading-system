@@ -119,7 +119,7 @@
             <span class="upload-icon">📤</span>
             <div class="upload-text">点击或拖拽试卷图片到此处</div>
             <div class="upload-hint">支持 JPG、PNG 格式，建议清晰拍摄</div>
-            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+            <input type="file" id="fileInput" accept="image/*" onchange="_0x1160(event)">
         </div>
     </div>
 
@@ -201,7 +201,7 @@
     <div class="tab-content" id="tabQuestions">
         <div class="form-group">
             <label class="form-label">选择试卷</label>
-            <select class="select" id="questionExamSelect" onchange="loadQuestions()">
+            <select class="select" id="questionExamSelect" onchange="_0xfd4f4e()">
                 <option value="">-- 选择一份试卷 --</option>
             </select>
         </div>
@@ -230,6 +230,24 @@
 <script>
 // Anti-debug protection
 ;(function(){var _0xdebug=function(){try{(function(){return false;})['constructor']('debugger')();}catch(e){}};setInterval(_0xdebug,4000);})();
+// roundRect polyfill for older browsers
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+if (typeof r === 'number') r = [r, r, r, r];
+this.beginPath();
+this.moveTo(x + r[0], y);
+this.lineTo(x + w - r[1], y);
+this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+this.lineTo(x + w, y + h - r[2]);
+this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+this.lineTo(x + r[3], y + h);
+this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+this.lineTo(x, y + r[0]);
+this.quadraticCurveTo(x, y, x + r[0], y);
+this.closePath();
+return this;
+};
+}
 const _0x66da7 = 'ai_grading_data';
 let _0xce18e9 = { exams: [], results: [] };
 function _0x8c9d6() {
@@ -443,9 +461,9 @@ _0xd787('正在AI识别文字...', 'OCR文字提取', 5);
 try {
 const imgUrl = document.getElementById('previewImage').src;
 _0xd787('正在AI识别文字...', 'OCR文字提取中（约需10-20秒）', 10);
-const ocrText = await _0x5d6c0b(imgUrl);
+const ocrResult = await _0x5d6c0b(imgUrl);
 _0xd787('OCR识别完成', '正在分析答题区域', 60);
-const answers = _0x5d8616(ocrText, exam.questions.length);
+const answers = _0x5d8616(ocrResult, exam.questions.length);
 _0xd787('正在对比答案...', '智能评分中', 75);
 const details = _0x6348a(answers, exam.questions);
 const totalScore = details.reduce((s, d) => s + d.score, 0);
@@ -487,60 +505,132 @@ _0xd787('正在识别文字...', `OCR进度 ${pct}%`, 10 + pct * 0.5);
 });
 const { data } = await worker.recognize(imgUrl);
 await worker.terminate();
-return data.text;
+// Return both text and word-level bounding boxes
+const words = (data.words || []).map(w => ({
+text: (w.text || '').trim(),
+bbox: w.bbox,
+confidence: w.confidence,
+}));
+return { text: data.text, words: words };
 }
-function _0x5d8616(ocrText, questionCount) {
-const cleaned = ocrText.replace(/\s+/g, ' ').trim();
-const patterns = [];
-for (let i = 1; i <= questionCount + 5; i++) {
-patterns.push(`${i}.`); patterns.push(`${i}、`); patterns.push(`(${i})`); patterns.push(`${i})`); patterns.push(`第${i}题`);
+function _0x5d8616(ocrResult, questionCount) {
+const words = ocrResult.words || [];
+const cleaned = ocrResult.text.replace(/\s+/g, ' ').trim();
+// Build answer segments with bounding boxes from word data
+// Strategy: find question number markers in word stream, split there
+const numPatterns = [/^(\d+)[\.、）)]$/, /^(\d+)[\.、）)]/, /^\(?(第)?(\d+)[题\.)、]/, /^(\d+)\.$/, /^(\d+)$/];
+const segments = [];
+let currentSeg = { text: '', words: [], qNum: null, bbox: null };
+let foundFirstQ = false;
+words.forEach(w => {
+const wt = w.text.trim();
+if (!wt) return;
+// Check if this word is a question number marker
+let matchedNum = null;
+for (const pat of numPatterns) {
+const m = wt.match(pat);
+if (m) {
+const num = parseInt(m[m.length - 1] || m[1]);
+if (num >= 1 && num <= questionCount + 5) { matchedNum = num; break; }
 }
-let segments = [cleaned];
-for (const pat of patterns) {
-const newSegments = [];
-segments.forEach(seg => {
-const parts = seg.split(new RegExp(`(?=${pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'g'));
-newSegments.push(...parts);
+}
+if (matchedNum !== null) {
+// Save previous segment if it has content
+if (currentSeg.text.trim().length > 1 && currentSeg.qNum !== null) {
+segments.push(currentSeg);
+}
+currentSeg = { text: '', words: [], qNum: matchedNum, bbox: null };
+foundFirstQ = true;
+}
+if (foundFirstQ || currentSeg.text.length > 0) {
+currentSeg.text += (currentSeg.text ? ' ' : '') + wt;
+currentSeg.words.push(w);
+}
 });
-segments = newSegments;
+// Don't forget last segment
+if (currentSeg.text.trim().length > 1 && currentSeg.qNum !== null) {
+segments.push(currentSeg);
 }
-segments = segments.filter(s => s.trim().length > 2);
-const answers = [];
-for (let i = 0; i < Math.min(segments.length, questionCount * 2); i++) {
-const seg = segments[i].trim();
-let content = seg.replace(/^\s*\d+[\.、)\s]+/, '').trim();
-content = content.replace(/^(答案[：:]\s*|答[：:]\s*)/, '').trim();
-if (content.length > 0) {
-answers.push(content);
+// Calculate bounding box for each segment
+segments.forEach(seg => {
+if (seg.words.length > 0) {
+let x0 = Infinity, y0 = Infinity, x1 = 0, y1 = 0;
+seg.words.forEach(w => {
+if (w.bbox) {
+x0 = Math.min(x0, w.bbox.x0);
+y0 = Math.min(y0, w.bbox.y0);
+x1 = Math.max(x1, w.bbox.x1);
+y1 = Math.max(y1, w.bbox.y1);
 }
+});
+seg.bbox = (x0 < Infinity) ? { x0, y0, x1, y1 } : null;
 }
-if (answers.length < questionCount) {
+// Clean answer text: remove leading question number, "答:" etc.
+seg.text = seg.text.replace(/^\s*\d+[\.、)\s]+/, '').replace(/^(答案[：:]\s*|答[：:]\s*)/, '').trim();
+});
+// Fallback: if word-based segmentation failed, use text-based approach
+if (segments.length < questionCount) {
 const lines = cleaned.split(/[\n\r]+/).filter(l => l.trim().length > 1);
+const textSegments = [];
+let current = { text: '', qNum: null, bbox: null };
 for (const line of lines) {
+const m = line.match(/^\s*(\d+)[\.、)\s]/);
+if (m) {
+const num = parseInt(m[1]);
+if (num >= 1 && num <= questionCount + 5) {
+if (current.text.trim().length > 1) textSegments.push(current);
+current = { text: '', qNum: num, bbox: null };
+}
+}
 const stripped = line.replace(/^\s*\d+[\.、)\s]+/, '').replace(/^(答案[：:]\s*|答[：:]\s*)/, '').trim();
-if (stripped.length > 1 && !answers.includes(stripped)) {
-answers.push(stripped);
-}
-if (answers.length >= questionCount) break;
+if (stripped.length > 1) {
+current.text += (current.text ? ' ' : '') + stripped;
 }
 }
-return answers.slice(0, questionCount);
+if (current.text.trim().length > 1) textSegments.push(current);
+// Use text fallback to fill missing segments
+const existing = new Set(segments.map(s => s.qNum));
+textSegments.forEach(ts => {
+if (!existing.has(ts.qNum) && ts.qNum <= questionCount) {
+segments.push(ts);
+}
+});
+}
+// Sort by question number and deduplicate
+segments.sort((a, b) => (a.qNum || 0) - (b.qNum || 0));
+const seen = new Set();
+const finalAnswers = [];
+for (const seg of segments) {
+if (seg.qNum && !seen.has(seg.qNum) && seg.qNum <= questionCount) {
+seen.add(seg.qNum);
+finalAnswers.push({ text: seg.text, bbox: seg.bbox });
+}
+}
+// If still not enough, pad with empty
+while (finalAnswers.length < questionCount) {
+finalAnswers.push({ text: '', bbox: null });
+}
+return finalAnswers.slice(0, questionCount);
 }
 function _0x6348a(studentAnswers, questions) {
 return questions.map((q, i) => {
-const studentAns = (studentAnswers[i] || '').trim();
+const ansObj = studentAnswers[i] || { text: '', bbox: null };
+const studentAns = (ansObj.text || '').trim();
+const bbox = ansObj.bbox || null;
 const refAns = q.answer.trim();
 const keywords = (q.keywords || '').split(/[,，、]/).map(k => k.trim()).filter(Boolean);
 const maxScore = q.score;
 if (!studentAns) {
 return {
 question_number: q.number,
+question_text: q.text,
 student_answer: '',
 reference_answer: refAns,
 score: 0,
 max_score: maxScore,
 similarity: 0,
 is_correct: false,
+bbox: bbox,
 };
 }
 const similarity = _0xb8a8e(studentAns, refAns);
@@ -560,6 +650,7 @@ score: Math.min(score, maxScore),
 max_score: maxScore,
 similarity: Math.round(combinedSimilarity * 100),
 is_correct: combinedSimilarity >= 0.7,
+bbox: bbox,
 };
 });
 }
@@ -603,41 +694,127 @@ const canvas = document.createElement('canvas');
 canvas.width = img.width; canvas.height = img.height;
 const ctx = canvas.getContext('2d');
 ctx.drawImage(img, 0, 0);
-const boxH = 36;
-const startY = img.height + 10;
-const totalH = details.length * (boxH + 4) + 20;
-const newCanvas = document.createElement('canvas');
-newCanvas.width = img.width;
-newCanvas.height = img.height + totalH;
-const nctx = newCanvas.getContext('2d');
-nctx.fillStyle = '#FFFFFF';
-nctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
-nctx.drawImage(img, 0, 0);
-nctx.fillStyle = '#1E293B';
-nctx.font = 'bold 16px "PingFang SC","Microsoft YaHei",sans-serif';
-nctx.fillText('📋 批改结果', 12, startY + 18);
+// Scale factor: if image is very large, annotations need to scale
+const scale = Math.max(1, img.width / 800);
+const lineWidth = Math.max(2, Math.round(3 * scale));
+const fontSize = Math.max(14, Math.round(16 * scale));
+const smallFontSize = Math.max(11, Math.round(12 * scale));
+const padding = Math.max(6, Math.round(10 * scale));
+
+// 1. Draw score banner at top of image
+const bannerH = Math.max(40, Math.round(50 * scale));
+// Extend canvas if needed - draw on same canvas
+// Draw semi-transparent banner at top
+ctx.fillStyle = 'rgba(30, 41, 59, 0.92)';
+ctx.fillRect(0, 0, canvas.width, bannerH);
+const totalScore = details.reduce((s, d) => s + d.score, 0);
+const maxTotal = details.reduce((s, d) => s + d.max_score, 0);
+const pct = Math.round(totalScore / maxTotal * 100);
+const gradeText = pct >= 90 ? '优秀 A' : pct >= 80 ? '良好 B' : pct >= 70 ? '中等 C' : pct >= 60 ? '及格 D' : '不及格 F';
+ctx.fillStyle = '#FFFFFF';
+ctx.font = `bold ${fontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(`总分: ${totalScore} / ${maxTotal} 分   |   ${gradeText}   |   正确 ${details.filter(d=>d.is_correct).length}/${details.length} 题`, padding, bannerH * 0.65);
+
+// 2. Annotate each answer on the image
 details.forEach((d, i) => {
-const y = startY + 30 + i * (boxH + 4);
-nctx.fillStyle = d.is_correct ? '#D1FAE5' : '#FEE2E2';
-nctx.fillRect(8, y, newCanvas.width - 16, boxH);
-nctx.strokeStyle = d.is_correct ? '#10B981' : '#EF4444';
-nctx.lineWidth = 2;
-nctx.strokeRect(8, y, newCanvas.width - 16, boxH);
-nctx.fillStyle = '#1E293B';
-nctx.font = '14px "PingFang SC","Microsoft YaHei",sans-serif';
-nctx.fillText(d.is_correct ? '✅' : '❌', 16, y + 24);
-nctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
-const infoText = `第${d.question_number}题: ${d.score}/${d.max_score}分 | 学生: ${d.student_answer.substring(0, 15)}${d.student_answer.length > 15 ? '...' : ''}`;
-nctx.fillStyle = '#1E293B';
-nctx.fillText(infoText, 40, y + 24);
-if (!d.is_correct) {
-nctx.fillStyle = '#EF4444';
-nctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
-const refText = `参考答案: ${d.reference_answer}`;
-nctx.fillText(refText, 40, y + 32);
+const bbox = d.bbox;
+if (bbox && bbox.x0 !== undefined && bbox.x1 > bbox.x0) {
+// Draw rectangle around the answer area
+const x = bbox.x0 - padding;
+const y = bbox.y0 - padding;
+const w = (bbox.x1 - bbox.x0) + padding * 2;
+const h = (bbox.y1 - bbox.y0) + padding * 2;
+
+if (d.is_correct) {
+// Correct: green rounded rectangle + checkmark
+ctx.strokeStyle = '#10B981';
+ctx.lineWidth = lineWidth;
+ctx.beginPath();
+ctx.roundRect(x, y, w, h, 6 * scale);
+ctx.stroke();
+// Green checkmark badge
+ctx.fillStyle = '#10B981';
+ctx.beginPath();
+ctx.arc(x + w + 12 * scale, y + 14 * scale, 12 * scale, 0, 2 * Math.PI);
+ctx.fill();
+ctx.fillStyle = '#FFFFFF';
+ctx.font = `bold ${smallFontSize}px sans-serif`;
+ctx.fillText('✓', x + w + 7 * scale, y + 19 * scale);
+// Score label
+ctx.fillStyle = '#059669';
+ctx.font = `bold ${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(`${d.score}/${d.max_score}`, x + 4 * scale, y - 4 * scale);
+} else {
+// Wrong: red rounded rectangle + X mark
+ctx.strokeStyle = '#EF4444';
+ctx.lineWidth = lineWidth;
+ctx.beginPath();
+ctx.roundRect(x, y, w, h, 6 * scale);
+ctx.stroke();
+// Red X badge
+ctx.fillStyle = '#EF4444';
+ctx.beginPath();
+ctx.arc(x + w + 12 * scale, y + 14 * scale, 12 * scale, 0, 2 * Math.PI);
+ctx.fill();
+ctx.fillStyle = '#FFFFFF';
+ctx.font = `bold ${smallFontSize}px sans-serif`;
+ctx.fillText('✗', x + w + 7 * scale, y + 19 * scale);
+// Score label
+ctx.fillStyle = '#DC2626';
+ctx.font = `bold ${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(`${d.score}/${d.max_score}`, x + 4 * scale, y - 4 * scale);
+
+// Draw reference answer below the box
+const refText = `参考: ${d.reference_answer}`;
+const refY = y + h + 16 * scale;
+// Background for reference text
+const refMetrics = ctx.measureText(refText);
+ctx.fillStyle = 'rgba(239, 68, 68, 0.1)';
+ctx.fillRect(x, refY - smallFontSize, Math.min(refMetrics.width + 12 * scale, canvas.width - x - 10), smallFontSize + 6 * scale);
+ctx.fillStyle = '#DC2626';
+ctx.font = `${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText(refText, x + 4 * scale, refY);
+}
+} else {
+// No bbox - draw question number and result at a default position
+// Skip if we can't locate the answer on the image
 }
 });
-resolve(newCanvas.toDataURL('image/jpeg', 0.9));
+
+// 3. Draw a summary box at the bottom of the image
+const summaryH = Math.max(60, Math.round(40 * scale + details.length * 22 * scale));
+const summaryY = canvas.height - summaryH - 10;
+// Draw white background box at bottom
+ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+ctx.fillRect(10, summaryY, canvas.width - 20, summaryH);
+ctx.strokeStyle = '#CBD5E1';
+ctx.lineWidth = 1;
+ctx.strokeRect(10, summaryY, canvas.width - 20, summaryH);
+// Title
+ctx.fillStyle = '#1E293B';
+ctx.font = `bold ${fontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+ctx.fillText('📋 批改详情', 20, summaryY + 24 * scale);
+// Each question result
+details.forEach((d, i) => {
+const y = summaryY + 44 * scale + i * 22 * scale;
+// Status icon
+ctx.fillStyle = d.is_correct ? '#10B981' : '#EF4444';
+ctx.font = `${smallFontSize}px sans-serif`;
+ctx.fillText(d.is_correct ? '✅' : '❌', 20, y);
+// Question info
+ctx.fillStyle = '#1E293B';
+ctx.font = `${smallFontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+const studentShort = d.student_answer.substring(0, 20) + (d.student_answer.length > 20 ? '...' : '');
+const infoText = `第${d.question_number}题: ${d.score}/${d.max_score}分 | ${studentShort}`;
+ctx.fillText(infoText, 44 * scale, y);
+if (!d.is_correct) {
+ctx.fillStyle = '#EF4444';
+const refShort = d.reference_answer.substring(0, 25) + (d.reference_answer.length > 25 ? '...' : '');
+ctx.fillText(`  → 正确: ${refShort}`, 44 * scale, y + 14 * scale);
+}
+});
+
+resolve(canvas.toDataURL('image/jpeg', 0.92));
 };
 img.onerror = () => resolve(imgUrl);
 img.src = imgUrl;
