@@ -23,6 +23,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>AI作业批改系统 - AI Grading</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1/mammoth.browser.min.js"></script>
 <style>:root{--primary:#4F46E5;--primary-light:#818CF8;--primary-dark:#3730A3;--success:#10B981;--success-light:#D1FAE5;--danger:#EF4444;--danger-light:#FEE2E2;--warning:#F59E0B;--warning-light:#FEF3C7;--bg:#F8FAFC;--bg-card:#FFFFFF;--text:#1E293B;--text-secondary:#64748B;--border:#E2E8F0;--shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-lg:0 10px 25px rgba(0,0,0,0.1);--radius:12px;--radius-sm:8px}*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}.navbar{background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}.navbar-brand{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;color:var(--primary);cursor:pointer}.navbar-brand .icon{font-size:26px}.navbar-tabs{display:flex;gap:4px}.navbar-tabs button{border:none;background:none;padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .2s}.navbar-tabs button:hover,.navbar-tabs button.active{background:var(--primary);color:white}.container{max-width:880px;margin:0 auto;padding:20px}.card{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px}.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}.card-title{font-size:17px;font-weight:700}.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}.btn:disabled{opacity:0.5;cursor:not-allowed}.btn-primary{background:var(--primary);color:white}.btn-primary:hover:not(:disabled){background:var(--primary-dark)}.btn-success{background:var(--success);color:white}.btn-success:hover:not(:disabled){background:#059669}.btn-danger{background:var(--danger);color:white}.btn-danger:hover:not(:disabled){background:#DC2626}.btn-outline{background:transparent;border:2px solid var(--border);color:var(--text)}.btn-outline:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}.btn-lg{padding:14px 28px;font-size:16px;border-radius:var(--radius)}.btn-block{width:100%;justify-content:center}.btn-sm{padding:4px 10px;font-size:12px}.upload-zone{border:3px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;background:var(--bg);position:relative;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center}.upload-zone:hover,.upload-zone.drag-over{border-color:var(--primary);background:#EEF2FF}.upload-zone .upload-icon{font-size:48px;display:block;margin-bottom:8px}.upload-zone .upload-text{font-size:15px;color:var(--text-secondary)}.upload-zone .upload-hint{font-size:12px;color:#94A3B8;margin-top:4px}.upload-zone input[type=file]{display:none}.mode-tabs{display:flex;gap:8px;margin-bottom:14px}.mode-btn{flex:1;padding:10px;border-radius:var(--radius-sm);border:2px solid var(--border);background:var(--bg);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}.mode-btn.active{border-color:var(--primary);background:#EEF2FF;color:var(--primary)}.mode-btn .mode-icon{font-size:20px;display:block;margin-bottom:2px}.camera-wrap{position:relative;border-radius:var(--radius);overflow:hidden;background:#000}.camera-wrap video{width:100%;display:block}.camera-ctrl{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px}.cam-btn{width:56px;height:56px;border-radius:50%;border:3px solid white;background:rgba(255,255,255,.25);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}.cam-btn:hover{background:rgba(255,255,255,.45);transform:scale(1.1)}.cam-inner{width:36px;height:36px;border-radius:50%;background:white}.loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center}.loading-overlay.active{display:flex}.loading-card{background:white;border-radius:var(--radius);padding:36px;text-align:center;box-shadow:var(--shadow-lg);max-width:340px;width:90%}.spinner{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}@keyframes spin{to{transform:rotate(360deg)}}.loading-text{font-size:14px;color:var(--text-secondary)}.loading-step{font-size:12px;color:#94A3B8;margin-top:4px}.ocr-progress{width:100%;height:6px;background:var(--border);border-radius:3px;margin-top:12px;overflow:hidden}.ocr-bar{height:100%;background:var(--primary);border-radius:3px;transition:width .3s;width:0}.result-panel{display:none;animation:fadeIn .4s}.result-panel.active{display:block}@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}.score-hero{text-align:center;padding:22px;background:linear-gradient(135deg,#667EEA,#764BA2);border-radius:var(--radius);color:white;margin-bottom:16px}.score-num{font-size:56px;font-weight:800;line-height:1}.score-label{font-size:14px;opacity:.85;margin-top:2px}.score-grade{display:inline-block;padding:3px 14px;border-radius:16px;font-size:16px;font-weight:700;margin-top:6px;background:rgba(255,255,255,.2)}.detail-item{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:var(--radius-sm);margin-bottom:6px;border:1px solid var(--border)}.detail-item.correct{border-left:4px solid var(--success);background:var(--success-light)}.detail-item.incorrect{border-left:4px solid var(--danger);background:var(--danger-light)}.detail-status{font-size:22px;flex-shrink:0;width:28px;text-align:center}.detail-content{flex:1}.detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}.detail-q{font-weight:700;font-size:14px}.detail-score{font-weight:700;font-size:14px}.detail-row{font-size:12px;color:var(--text-secondary);margin-top:3px;padding:5px 8px;background:rgba(255,255,255,.6);border-radius:4px}.detail-row strong{color:var(--text)}.detail-diff{font-size:11px;color:var(--danger);margin-top:3px}.img-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}.img-compare img{width:100%;border-radius:var(--radius-sm);box-shadow:var(--shadow)}.img-compare .img-label{font-size:11px;color:var(--text-secondary);text-align:center;margin-top:4px}@media(max-width:600px){.img-compare{grid-template-columns:1fr}}.history-list{display:flex;flex-direction:column;gap:8px}.history-item{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border);cursor:pointer;transition:all .2s}.history-item:hover{border-color:var(--primary);box-shadow:var(--shadow)}.hist-thumb{width:72px;height:54px;border-radius:4px;object-fit:cover;background:var(--bg);flex-shrink:0}.hist-info{flex:1;min-width:0}.hist-name{font-weight:600;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hist-meta{font-size:11px;color:var(--text-secondary)}.hist-score{font-size:26px;font-weight:800;color:var(--primary);flex-shrink:0}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}th{background:var(--bg);font-weight:600;color:var(--text-secondary);font-size:11px;text-transform:uppercase}tr:hover td{background:#F8FAFC}.input,.textarea{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;transition:border-color .2s;background:white;color:var(--text)}.input:focus,.textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}.textarea{resize:vertical;min-height:60px}.form-group{margin-bottom:10px}.form-label{display:block;font-size:12px;font-weight:600;margin-bottom:3px}.form-hint{font-size:11px;color:var(--text-secondary);margin-top:2px}.select{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:white;color:var(--text);cursor:pointer}.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}.badge-success{background:var(--success-light);color:#065F46}.badge-danger{background:var(--danger-light);color:#991B1B}.badge-warning{background:var(--warning-light);color:#92400E}.badge-info{background:#DBEAFE;color:#1E40AF}.tab-btns{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:16px}.tab-btn{padding:8px 16px;border:none;background:none;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}.tab-content{display:none}.tab-content.active{display:block}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;align-items:center;justify-content:center}.modal-overlay.active{display:flex}.modal{background:white;border-radius:var(--radius);padding:28px;box-shadow:var(--shadow-lg);max-width:500px;width:90%;max-height:82vh;overflow-y:auto}.modal-title{font-size:17px;font-weight:700;margin-bottom:16px}.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}.empty-state{text-align:center;padding:36px 16px;color:var(--text-secondary)}.empty-icon{font-size:40px;margin-bottom:8px;opacity:.5}.empty-state p{font-size:13px}@media(max-width:600px){.container{padding:12px 10px}.card{padding:14px}.score-num{font-size:44px}.navbar{padding:0 10px}.navbar-brand{font-size:14px}}.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;color:white;animation:toastIn .3s;pointer-events:none}.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.info{background:var(--primary)}@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
 </head>
 <body>
@@ -1111,7 +1112,7 @@ container.innerHTML = exam.questions.map(q => `
 <textarea class="textarea q-answer" rows="2" placeholder="标准答案（可输入或点击上传按钮导入）" style="flex:1;">${_0x3515c1(q.answer||'')}</textarea>
 <button class="btn btn-outline btn-sm" onclick="_0x1f8b3d(this)" title="上传参考答案文件（图片自动OCR识别，文本直接读取）" style="flex-shrink:0;white-space:nowrap;padding:6px 8px;font-size:11px;height:auto;">📎 上传</button>
 </div>
-<input type="file" style="display:none;" accept="image/*,.txt,.md,.json,.csv,.pdf,.docx">
+<input type="file" style="display:none;">
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div class="form-group">
@@ -1142,7 +1143,7 @@ card.innerHTML = `
 <button class="btn btn-danger btn-sm" onclick="_0xd6bafb(this)">删除</button>
 </div>
 <div class="form-group"><label class="form-label">题目内容</label><input class="input q-text" placeholder="题目描述"></div>
-<div class="form-group"><label class="form-label">参考答案 *</label><div style="display:flex;gap:6px;align-items:flex-start;"><textarea class="textarea q-answer" rows="2" placeholder="标准答案（可输入或点击上传按钮导入）" style="flex:1;"></textarea><button class="btn btn-outline btn-sm" onclick="_0x1f8b3d(this)" title="上传参考答案文件（图片自动OCR识别，文本直接读取）" style="flex-shrink:0;white-space:nowrap;padding:6px 8px;font-size:11px;">📎 上传</button></div><input type="file" style="display:none;" accept="image/*,.txt,.md,.json,.csv,.pdf,.docx"></div>
+<div class="form-group"><label class="form-label">参考答案 *</label><div style="display:flex;gap:6px;align-items:flex-start;"><textarea class="textarea q-answer" rows="2" placeholder="标准答案（可输入或点击上传按钮导入）" style="flex:1;"></textarea><button class="btn btn-outline btn-sm" onclick="_0x1f8b3d(this)" title="上传参考答案文件（图片自动OCR识别，文本直接读取）" style="flex-shrink:0;white-space:nowrap;padding:6px 8px;font-size:11px;">📎 上传</button></div><input type="file" style="display:none;"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div class="form-group"><label class="form-label">分值</label><input class="input q-score" type="number" value="10" min="1" step="0.5"></div>
 <div class="form-group"><label class="form-label">关键词（逗号分隔）</label><input class="input q-keywords" placeholder="关键词1,关键词2"></div>
@@ -1178,7 +1179,7 @@ _0xcca145();
 _0x5f512();
 _0xcf33b(`保存成功！共 ${questions.length} 道题目`, 'success');
 }
-// 上传参考答案文件（任意格式：图片OCR识别 / 文本直接读取）
+// 上传参考答案文件（任意格式：Docx解析 / 图片OCR识别 / 文本直接读取）
 async function _0x1f8b3d(btn) {
 const card = btn.closest('.card');
 if (!card) return;
@@ -1191,10 +1192,41 @@ fileInput._handler = true;
 fileInput.addEventListener('change', async function(e) {
 const file = e.target.files[0];
 if (!file) return;
-_0xcf33b('正在读取参考答案...', 'info');
-const isImage = file.type.startsWith('image/') || file.name.match(/\.(jpg|jpeg|png|gif|bmp|webp|tiff)$/i);
-const isText = file.name.match(/\.(txt|md|json|csv|xml|html|htm)$/i) || file.type.startsWith('text/');
-if (isText) {
+const name = file.name.toLowerCase();
+// Word文档 (.docx) -- 必须放在文本判断之前，因为docx也是二进制
+const isDocx = name.endsWith('.docx');
+// 旧版Word (.doc)
+const isDoc = name.endsWith('.doc') && !name.endsWith('.docx');
+// 图片文件
+const isImage = file.type.startsWith('image/') || name.match(/\.(jpg|jpeg|png|gif|bmp|webp|tiff)$/i);
+// 纯文本文件
+const isText = name.match(/\.(txt|md|json|csv|xml|html?)$/i) || file.type.startsWith('text/');
+
+if (isDocx) {
+_0xcf33b('正在解析Word文档...', 'info');
+try {
+const arrayBuffer = await file.arrayBuffer();
+const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+const content = result.value.trim();
+if (!content) {
+_0xcf33b('Word文档中未找到文字内容，请检查文件', 'error'); e.target.value = ''; return;
+}
+if (content.length > 2000) {
+textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）';
+} else {
+textarea.value = content;
+}
+if (result.messages && result.messages.length > 0) {
+_0xcf33b('⚠️ 答案已提取（部分内容可能不完整）', 'warning');
+} else {
+_0xcf33b('✅ 答案已从Word文档提取', 'success');
+}
+} catch(err) {
+_0xcf33b('Word文档解析失败: ' + (err.message || '文件格式不支持'), 'error');
+}
+} else if (isDoc) {
+_0xcf33b('不支持旧版.doc格式，请另存为.docx格式后重试', 'error');
+} else if (isText) {
 const reader = new FileReader();
 reader.onload = function(ev) {
 const content = ev.target.result.trim();
@@ -1226,17 +1258,24 @@ _0xcf33b('OCR识别失败: ' + (err.message || '未知错误'), 'error');
 };
 reader.readAsDataURL(file);
 } else {
-// Try as text fallback
+// 未知文件：检测是否为乱码
 try {
 const reader = new FileReader();
 reader.onload = function(ev) {
 const content = ev.target.result.trim();
-if (!content || content.length < 2) { _0xcf33b('无法读取该文件，请使用图片或文本格式', 'error'); return; }
-if (content.length > 2000) { textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）'; }
-else { textarea.value = content; }
+// 检测乱码特征（大量�替换字符）
+const garbledCount = (content.match(/\ufffd/g) || []).length;
+if (!content || content.length < 2 || (garbledCount > 5 && content.length < 100)) {
+_0xcf33b('不支持的文件格式。请使用 .docx / .txt / 图片格式上传', 'error'); e.target.value = ''; return;
+}
+if (content.length > 2000) {
+textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）';
+} else {
+textarea.value = content;
+}
 _0xcf33b('✅ 答案已读取', 'success');
 };
-reader.onerror = function() { _0xcf33b('文件读取失败，请使用图片(JPG/PNG)或文本(TXT)格式', 'error'); };
+reader.onerror = function() { _0xcf33b('文件读取失败，请使用 .docx / .txt / 图片格式', 'error'); };
 reader.readAsText(file, 'utf-8');
 } catch(err2) { _0xcf33b('不支持该文件格式', 'error'); }
 }
