@@ -48,6 +48,7 @@
         <div class="loading-text" id="loadingText">正在处理...</div>
         <div class="loading-step" id="loadingStep"></div>
         <div class="ocr-progress"><div class="ocr-bar" id="ocrBar"></div></div>
+        <button class="btn btn-danger btn-sm" id="cancelLoadingBtn" style="margin-top:16px;display:none;" onclick="cancelGrading()">✕ 取消批改</button>
     </div>
 </div>
 
@@ -286,7 +287,7 @@ _0xbef990();
 }
 _0x65a5d3();
 // Background preload OCR worker for instant recognition later
-setTimeout(() => { if (!_0x7b3f2a && !_0x2c8d4e) { _0x2c8d4e = true; Tesseract.createWorker('chi_sim+eng', 1).then(w => { _0x7b3f2a = w; _0x2c8d4e = false; console.log('OCR引擎后台预加载完成'); }).catch(() => { _0x2c8d4e = false; }); } }, 500);
+setTimeout(() => { if (!_0x7b3f2a && !_0x2c8d4e) { _0x2c8d4e = true; _0x7b3f2a = null; Promise.race([ Tesseract.createWorker('chi_sim+eng', 1, { corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js', langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js-data@4/lang' }), new Promise((_, reject) => setTimeout(() => reject(new Error('preload_timeout')), 20000)) ]).then(w => { _0x7b3f2a = w; _0x2c8d4e = false; console.log('OCR引擎后台预加载完成'); }).catch(() => { _0x2c8d4e = false; _0x7b3f2a = null; console.log('OCR预加载超时，将在批改时重试'); }); } }, 500);
 }
 function _0x65a5d3() {
 _0xce18e9.exams.forEach(exam => {
@@ -306,6 +307,7 @@ let _0x8a8f = null;
 let _0xf71f = null;
 let _0x7b3f2a = null; // cached OCR worker
 let _0x2c8d4e = false; // worker loading flag
+let _0x2c8d4e_cancel = false; // cancel flag for OCR
 _0x8c9d6();
 _0x5f512();
 _0x19f0();
@@ -326,7 +328,16 @@ const t = document.getElementById('toast');
 t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
 setTimeout(() => { t.style.display = 'none'; }, 2500);
 }
-function _0x097d2(show) { document.getElementById('loadingOverlay').classList.toggle('active', show); }
+function _0x097d2(show) { 
+document.getElementById('loadingOverlay').classList.toggle('active', show);
+document.getElementById('cancelLoadingBtn').style.display = show ? 'inline-block' : 'none';
+if (!show) _0x2c8d4e_cancel = false;
+}
+function cancelGrading() {
+_0x2c8d4e_cancel = true;
+_0x097d2(false);
+_0xcf33b('已取消批改', 'info');
+}
 function _0xd787(text, step, pct) {
 document.getElementById('loadingText').textContent = text;
 document.getElementById('loadingStep').textContent = step || '';
@@ -477,8 +488,9 @@ const examId = document.getElementById('examSelect').value;
 const exam = _0xd835(examId);
 if (!exam) { _0xcf33b('请先选择一份试卷', 'error'); return; }
 const studentName = document.getElementById('studentName').value.trim();
+_0x2c8d4e_cancel = false;
 _0x097d2(true);
-_0xd787('正在AI识别文字...', 'OCR文字提取', 5);
+_0xd787('准备批改...', '正在初始化', 3);
 try {
 const imgUrl = document.getElementById('previewImage').src;
 _0xd787('正在AI识别文字...', 'OCR文字提取中（约需10-20秒）', 10);
@@ -503,7 +515,7 @@ grade: grade,
 details: details,
 original_image: imgUrl,
 annotated_image: annotatedUrl,
-ocr_text: ocrText,
+ocr_text: ocrResult.text,
 };
 _0x8a8f = result;
 _0x8308b0(result);
@@ -512,22 +524,32 @@ _0xcf33b(`批改完成！得分 ${totalScore}/${exam.total_score}`, 'success');
 } catch(e) {
 console.error('批改失败:', e);
 _0x097d2(false);
+if (e.message !== '用户取消批改') {
 _0xcf33b('批改失败: ' + (e.message || '未知错误'), 'error');
 }
 }
-async function _0x5d6c0b(imgUrl) {
-// Wait for worker if it's being loaded
-if (_0x2c8d4e) {
-_0xd787('OCR引擎初始化中...', '等待引擎就绪（仅首次加载）', 1);
-while (_0x2c8d4e) await new Promise(r => setTimeout(r, 300));
 }
+async function _0x5d6c0b(imgUrl) {
+// If OCR was cancelled, reset
+_0x2c8d4e_cancel = false;
+// Wait for background preload if in progress (max 10s)
+const preloadStart = Date.now();
+while (_0x2c8d4e && !_0x2c8d4e_cancel && (Date.now() - preloadStart) < 10000) {
+_0xd787('OCR引擎初始化中...', '等待引擎就绪（仅首次加载）', 1);
+await new Promise(r => setTimeout(r, 500));
+}
+if (_0x2c8d4e_cancel) throw new Error('用户取消批改');
 // Create worker if not cached (first time or after failure)
 if (!_0x7b3f2a) {
 _0x2c8d4e = true;
-_0xd787('正在加载OCR引擎...', '首次加载约需5-15秒（后续秒出）', 2);
+_0xd787('正在加载OCR引擎...', '首次加载约需10-30秒（后续秒出）', 2);
 try {
-_0x7b3f2a = await Tesseract.createWorker('chi_sim+eng', 1, {
+_0x7b3f2a = await Promise.race([
+Tesseract.createWorker('chi_sim+eng', 1, {
+corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
+langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js-data@4/lang',
 logger: m => {
+if (_0x2c8d4e_cancel) throw new Error('CANCEL');
 if (m.status === 'loading tesseract core') {
 _0xd787('加载OCR核心引擎...', `引擎 ${Math.round((m.progress||0)*100)}%`, 2 + Math.round((m.progress||0)*5));
 }
@@ -537,17 +559,31 @@ _0xd787('初始化语言包...', '正在准备中英文+数字识别', 7);
 if (m.status === 'loading language traineddata') {
 _0xd787('加载中文+英文语言数据...', `语言包 ${Math.round((m.progress||0)*100)}%`, 8 + Math.round((m.progress||0)*2));
 }
+if (m.status === 'downloading language traineddata') {
+_0xd787('下载语言数据包...', `下载中 ${Math.round((m.progress||0)*100)}%（约34MB，首次较慢）`, 8 + Math.round((m.progress||0)*2));
 }
-});
+}
+}),
+new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 30000))
+]);
 } catch(e) {
 _0x2c8d4e = false;
 _0x7b3f2a = null;
+if (e.message === 'CANCEL') throw new Error('用户取消批改');
+if (e.message === 'TIMEOUT') throw new Error('OCR引擎加载超时（超过30秒）。可能是网络较慢或CDN不稳定，请刷新页面重试。如多次失败，可使用手动输入模式。');
 throw new Error('OCR引擎启动失败: ' + (e.message || ''));
 }
 _0x2c8d4e = false;
+document.getElementById('cancelLoadingBtn').style.display = 'none';
 }
+if (_0x2c8d4e_cancel) throw new Error('用户取消批改');
 _0xd787('正在识别文字和数字...', 'OCR扫描识别中', 12);
-const { data } = await _0x7b3f2a.recognize(imgUrl);
+const startTime = Date.now();
+const { data } = await Promise.race([
+_0x7b3f2a.recognize(imgUrl),
+new Promise((_, reject) => setTimeout(() => reject(new Error('RECOG_TIMEOUT')), 60000))
+]);
+if (_0x2c8d4e_cancel) throw new Error('用户取消批改');
 // Keep worker alive for reuse - do NOT terminate
 const words = (data.words || []).map(w => ({
 text: (w.text || '').trim(),
