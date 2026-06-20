@@ -253,7 +253,7 @@ tr:hover td { background:#F8FAFC; }
 
     <!-- 模式切换 -->
     <div class="mode-tabs">
-        <button class="mode-btn active" id="modeUploadBtn" onclick="switchMode('upload')">
+        <button class="mode-btn active" id="modeUploadBtn" onclick="triggerUpload()">
             <span class="mode-icon">📁</span>上传图片
         </button>
         <button class="mode-btn" id="modeCameraBtn" onclick="switchMode('camera')">
@@ -513,6 +513,11 @@ function switchMode(mode) {
     document.getElementById('modeUpload').style.display = mode === 'upload' ? 'block' : 'none';
     document.getElementById('modeCamera').style.display = mode === 'camera' ? 'block' : 'none';
     if (mode === 'camera') startCamera(); else stopCamera();
+}
+
+function triggerUpload() {
+    switchMode('upload');
+    setTimeout(() => { document.getElementById('fileInput').click(); }, 100);
 }
 
 // ============================================
