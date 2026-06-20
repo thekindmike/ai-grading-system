@@ -285,6 +285,8 @@ questions: [
 _0xbef990();
 }
 _0x65a5d3();
+// Background preload OCR worker for instant recognition later
+setTimeout(() => { if (!_0x7b3f2a && !_0x2c8d4e) { _0x2c8d4e = true; Tesseract.createWorker('chi_sim+eng', 1).then(w => { _0x7b3f2a = w; _0x2c8d4e = false; console.log('OCR引擎后台预加载完成'); }).catch(() => { _0x2c8d4e = false; }); } }, 500);
 }
 function _0x65a5d3() {
 _0xce18e9.exams.forEach(exam => {
@@ -302,6 +304,8 @@ let _0x7e1a8c = null;
 let _0xf3337 = null;
 let _0x8a8f = null;
 let _0xf71f = null;
+let _0x7b3f2a = null; // cached OCR worker
+let _0x2c8d4e = false; // worker loading flag
 _0x8c9d6();
 _0x5f512();
 _0x19f0();
@@ -512,17 +516,39 @@ _0xcf33b('批改失败: ' + (e.message || '未知错误'), 'error');
 }
 }
 async function _0x5d6c0b(imgUrl) {
-const worker = await Tesseract.createWorker('chi_sim+eng', 1, {
+// Wait for worker if it's being loaded
+if (_0x2c8d4e) {
+_0xd787('OCR引擎初始化中...', '等待引擎就绪（仅首次加载）', 1);
+while (_0x2c8d4e) await new Promise(r => setTimeout(r, 300));
+}
+// Create worker if not cached (first time or after failure)
+if (!_0x7b3f2a) {
+_0x2c8d4e = true;
+_0xd787('正在加载OCR引擎...', '首次加载约需5-15秒（后续秒出）', 2);
+try {
+_0x7b3f2a = await Tesseract.createWorker('chi_sim+eng', 1, {
 logger: m => {
-if (m.status === 'recognizing text') {
-const pct = Math.round(m.progress * 100);
-_0xd787('正在识别文字...', `OCR进度 ${pct}%`, 10 + pct * 0.5);
+if (m.status === 'loading tesseract core') {
+_0xd787('加载OCR核心引擎...', `引擎 ${Math.round((m.progress||0)*100)}%`, 2 + Math.round((m.progress||0)*5));
+}
+if (m.status === 'initializing tesseract') {
+_0xd787('初始化语言包...', '正在准备中英文+数字识别', 7);
+}
+if (m.status === 'loading language traineddata') {
+_0xd787('加载中文+英文语言数据...', `语言包 ${Math.round((m.progress||0)*100)}%`, 8 + Math.round((m.progress||0)*2));
 }
 }
 });
-const { data } = await worker.recognize(imgUrl);
-await worker.terminate();
-// Return both text and word-level bounding boxes
+} catch(e) {
+_0x2c8d4e = false;
+_0x7b3f2a = null;
+throw new Error('OCR引擎启动失败: ' + (e.message || ''));
+}
+_0x2c8d4e = false;
+}
+_0xd787('正在识别文字和数字...', 'OCR扫描识别中', 12);
+const { data } = await _0x7b3f2a.recognize(imgUrl);
+// Keep worker alive for reuse - do NOT terminate
 const words = (data.words || []).map(w => ({
 text: (w.text || '').trim(),
 bbox: w.bbox,
@@ -1045,7 +1071,11 @@ container.innerHTML = exam.questions.map(q => `
 </div>
 <div class="form-group">
 <label class="form-label">参考答案 *</label>
-<textarea class="textarea q-answer" rows="2" placeholder="标准答案">${_0x3515c1(q.answer||'')}</textarea>
+<div style="display:flex;gap:6px;align-items:flex-start;">
+<textarea class="textarea q-answer" rows="2" placeholder="标准答案（可输入或点击上传按钮导入）" style="flex:1;">${_0x3515c1(q.answer||'')}</textarea>
+<button class="btn btn-outline btn-sm" onclick="_0x1f8b3d(this)" title="上传参考答案文件（图片自动OCR识别，文本直接读取）" style="flex-shrink:0;white-space:nowrap;padding:6px 8px;font-size:11px;height:auto;">📎 上传</button>
+</div>
+<input type="file" style="display:none;" accept="image/*,.txt,.md,.json,.csv,.pdf,.docx">
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div class="form-group">
@@ -1076,7 +1106,7 @@ card.innerHTML = `
 <button class="btn btn-danger btn-sm" onclick="_0xd6bafb(this)">删除</button>
 </div>
 <div class="form-group"><label class="form-label">题目内容</label><input class="input q-text" placeholder="题目描述"></div>
-<div class="form-group"><label class="form-label">参考答案 *</label><textarea class="textarea q-answer" rows="2" placeholder="标准答案"></textarea></div>
+<div class="form-group"><label class="form-label">参考答案 *</label><div style="display:flex;gap:6px;align-items:flex-start;"><textarea class="textarea q-answer" rows="2" placeholder="标准答案（可输入或点击上传按钮导入）" style="flex:1;"></textarea><button class="btn btn-outline btn-sm" onclick="_0x1f8b3d(this)" title="上传参考答案文件（图片自动OCR识别，文本直接读取）" style="flex-shrink:0;white-space:nowrap;padding:6px 8px;font-size:11px;">📎 上传</button></div><input type="file" style="display:none;" accept="image/*,.txt,.md,.json,.csv,.pdf,.docx"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div class="form-group"><label class="form-label">分值</label><input class="input q-score" type="number" value="10" min="1" step="0.5"></div>
 <div class="form-group"><label class="form-label">关键词（逗号分隔）</label><input class="input q-keywords" placeholder="关键词1,关键词2"></div>
@@ -1111,6 +1141,73 @@ _0xfd4f4e();
 _0xcca145();
 _0x5f512();
 _0xcf33b(`保存成功！共 ${questions.length} 道题目`, 'success');
+}
+// 上传参考答案文件（任意格式：图片OCR识别 / 文本直接读取）
+async function _0x1f8b3d(btn) {
+const card = btn.closest('.card');
+if (!card) return;
+const textarea = card.querySelector('.q-answer');
+const fileInput = card.querySelector('input[type="file"]');
+if (!fileInput || !textarea) return;
+// Bind change handler once
+if (!fileInput._handler) {
+fileInput._handler = true;
+fileInput.addEventListener('change', async function(e) {
+const file = e.target.files[0];
+if (!file) return;
+_0xcf33b('正在读取参考答案...', 'info');
+const isImage = file.type.startsWith('image/') || file.name.match(/\.(jpg|jpeg|png|gif|bmp|webp|tiff)$/i);
+const isText = file.name.match(/\.(txt|md|json|csv|xml|html|htm)$/i) || file.type.startsWith('text/');
+if (isText) {
+const reader = new FileReader();
+reader.onload = function(ev) {
+const content = ev.target.result.trim();
+if (content.length > 2000) {
+textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）';
+} else {
+textarea.value = content;
+}
+_0xcf33b('✅ 答案已从文本文件读取', 'success');
+};
+reader.onerror = function() { _0xcf33b('文件读取失败', 'error'); };
+reader.readAsText(file, 'utf-8');
+} else if (isImage) {
+_0xcf33b('正在OCR识别图片中的文字...', 'info');
+const reader = new FileReader();
+reader.onload = async function(ev) {
+try {
+const ocrResult = await _0x5d6c0b(ev.target.result);
+const text = ocrResult.text.trim();
+if (text.length > 2000) {
+textarea.value = text.substring(0, 2000) + '\n\n...（已截取前2000字）';
+} else {
+textarea.value = text;
+}
+_0xcf33b('✅ 答案已从图片OCR识别', 'success');
+} catch(err) {
+_0xcf33b('OCR识别失败: ' + (err.message || '未知错误'), 'error');
+}
+};
+reader.readAsDataURL(file);
+} else {
+// Try as text fallback
+try {
+const reader = new FileReader();
+reader.onload = function(ev) {
+const content = ev.target.result.trim();
+if (!content || content.length < 2) { _0xcf33b('无法读取该文件，请使用图片或文本格式', 'error'); return; }
+if (content.length > 2000) { textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）'; }
+else { textarea.value = content; }
+_0xcf33b('✅ 答案已读取', 'success');
+};
+reader.onerror = function() { _0xcf33b('文件读取失败，请使用图片(JPG/PNG)或文本(TXT)格式', 'error'); };
+reader.readAsText(file, 'utf-8');
+} catch(err2) { _0xcf33b('不支持该文件格式', 'error'); }
+}
+e.target.value = '';
+});
+}
+fileInput.click();
 }
 function _0x3515c1(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 document.getElementById('detailModal').addEventListener('click', function(e) { if(e.target===this) _0xe4543(); });
