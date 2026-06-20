@@ -1180,22 +1180,28 @@ _0x5f512();
 _0xcf33b(`保存成功！共 ${questions.length} 道题目`, 'success');
 }
 // 上传参考答案文件（任意格式：Docx解析 / 图片OCR识别 / 文本直接读取）
+// 每次动态创建临时file input，避免闭包过期引用到已销毁的textarea
 async function _0x1f8b3d(btn) {
 const card = btn.closest('.card');
 if (!card) return;
 const textarea = card.querySelector('.q-answer');
-const fileInput = card.querySelector('input[type="file"]');
-if (!fileInput || !textarea) return;
-// Bind change handler once
-if (!fileInput._handler) {
-fileInput._handler = true;
-fileInput.addEventListener('change', async function(e) {
+if (!textarea) return;
+
+const input = document.createElement('input');
+input.type = 'file';
+input.accept = '.docx,.doc,.txt,.md,.json,.csv,.xml,image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp';
+input.style.display = 'none';
+
+input.addEventListener('change', async function(e) {
 const file = e.target.files[0];
-if (!file) return;
+if (!file) { input.remove(); return; }
 const name = file.name.toLowerCase();
-// Word文档 (.docx) -- 必须放在文本判断之前，因为docx也是二进制
-const isDocx = name.endsWith('.docx');
-// 旧版Word (.doc)
+const mime = (file.type || '').toLowerCase();
+
+// 双重检测 .docx（文件名扩展名 + MIME类型）
+const isDocx = name.endsWith('.docx') ||
+    mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+// 旧版 .doc（不包含.docx后缀）
 const isDoc = name.endsWith('.doc') && !name.endsWith('.docx');
 // 图片文件
 const isImage = file.type.startsWith('image/') || name.match(/\.(jpg|jpeg|png|gif|bmp|webp|tiff)$/i);
@@ -1203,38 +1209,29 @@ const isImage = file.type.startsWith('image/') || name.match(/\.(jpg|jpeg|png|gi
 const isText = name.match(/\.(txt|md|json|csv|xml|html?)$/i) || file.type.startsWith('text/');
 
 if (isDocx) {
+if (typeof mammoth === 'undefined') {
+_0xcf33b('Word解析组件加载失败，请刷新页面后重试', 'error'); input.remove(); return;
+}
 _0xcf33b('正在解析Word文档...', 'info');
 try {
 const arrayBuffer = await file.arrayBuffer();
 const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
 const content = result.value.trim();
 if (!content) {
-_0xcf33b('Word文档中未找到文字内容，请检查文件', 'error'); e.target.value = ''; return;
+_0xcf33b('Word文档中未找到文字内容，请检查文件', 'error'); input.remove(); return;
 }
-if (content.length > 2000) {
-textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）';
-} else {
-textarea.value = content;
-}
-if (result.messages && result.messages.length > 0) {
-_0xcf33b('⚠️ 答案已提取（部分内容可能不完整）', 'warning');
-} else {
-_0xcf33b('✅ 答案已从Word文档提取', 'success');
-}
+textarea.value = content.length > 2000 ? content.substring(0, 2000) + '\n\n...（已截取前2000字）' : content;
+_0xcf33b(result.messages && result.messages.length > 0 ? '⚠️ 答案已提取（部分格式可能丢失）' : '✅ 答案已从Word文档提取', 'success');
 } catch(err) {
 _0xcf33b('Word文档解析失败: ' + (err.message || '文件格式不支持'), 'error');
 }
 } else if (isDoc) {
-_0xcf33b('不支持旧版.doc格式，请另存为.docx格式后重试', 'error');
+_0xcf33b('不支持旧版.doc格式，请用Word打开后另存为.docx格式', 'error');
 } else if (isText) {
 const reader = new FileReader();
 reader.onload = function(ev) {
 const content = ev.target.result.trim();
-if (content.length > 2000) {
-textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）';
-} else {
-textarea.value = content;
-}
+textarea.value = content.length > 2000 ? content.substring(0, 2000) + '\n\n...（已截取前2000字）' : content;
 _0xcf33b('✅ 答案已从文本文件读取', 'success');
 };
 reader.onerror = function() { _0xcf33b('文件读取失败', 'error'); };
@@ -1246,11 +1243,7 @@ reader.onload = async function(ev) {
 try {
 const ocrResult = await _0x5d6c0b(ev.target.result);
 const text = ocrResult.text.trim();
-if (text.length > 2000) {
-textarea.value = text.substring(0, 2000) + '\n\n...（已截取前2000字）';
-} else {
-textarea.value = text;
-}
+textarea.value = text.length > 2000 ? text.substring(0, 2000) + '\n\n...（已截取前2000字）' : text;
 _0xcf33b('✅ 答案已从图片OCR识别', 'success');
 } catch(err) {
 _0xcf33b('OCR识别失败: ' + (err.message || '未知错误'), 'error');
@@ -1258,31 +1251,26 @@ _0xcf33b('OCR识别失败: ' + (err.message || '未知错误'), 'error');
 };
 reader.readAsDataURL(file);
 } else {
-// 未知文件：检测是否为乱码
-try {
+// 未知文件：先试读，检测是否为乱码（二进制被当作文本）
 const reader = new FileReader();
 reader.onload = function(ev) {
 const content = ev.target.result.trim();
-// 检测乱码特征（大量�替换字符）
-const garbledCount = (content.match(/\ufffd/g) || []).length;
-if (!content || content.length < 2 || (garbledCount > 5 && content.length < 100)) {
-_0xcf33b('不支持的文件格式。请使用 .docx / .txt / 图片格式上传', 'error'); e.target.value = ''; return;
+const garbledCount = (content.match(/[\ufffd\ufffe\ufff0-\uffff]/g) || []).length;
+const ratio = content.length > 0 ? garbledCount / content.length : 0;
+if (!content || content.length < 2 || ratio > 0.15) {
+_0xcf33b('不支持的文件格式。请使用 .docx / .txt / 图片格式上传', 'error'); input.remove(); return;
 }
-if (content.length > 2000) {
-textarea.value = content.substring(0, 2000) + '\n\n...（已截取前2000字）';
-} else {
-textarea.value = content;
-}
+textarea.value = content.length > 2000 ? content.substring(0, 2000) + '\n\n...（已截取前2000字）' : content;
 _0xcf33b('✅ 答案已读取', 'success');
 };
 reader.onerror = function() { _0xcf33b('文件读取失败，请使用 .docx / .txt / 图片格式', 'error'); };
 reader.readAsText(file, 'utf-8');
-} catch(err2) { _0xcf33b('不支持该文件格式', 'error'); }
 }
-e.target.value = '';
+input.remove();
 });
-}
-fileInput.click();
+
+document.body.appendChild(input);
+input.click();
 }
 function _0x3515c1(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 document.getElementById('detailModal').addEventListener('click', function(e) { if(e.target===this) _0xe4543(); });
