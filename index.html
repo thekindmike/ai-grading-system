@@ -91,10 +91,10 @@
         <label class="form-label">选择试卷</label>
         <div style="display:flex;gap:8px;align-items:center;">
             <select class="select" id="examSelect" onchange="_0x7626e()" style="flex:1;"></select>
-            <button class="btn btn-outline btn-sm" onclick="document.getElementById('examFileInput').click()" title="导入试卷文件（JSON格式）">📥 导入</button>
-            <input type="file" id="examFileInput" accept=".json,application/json" style="display:none;" onchange="_0x4e8c2f(event)">
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('examFileInput').click()" title="导入试卷文件（支持任意格式）">📥 导入</button>
+            <input type="file" id="examFileInput" style="display:none;" onchange="_0x4e8c2f(event)">
         </div>
-        <div class="upload-hint" style="margin-top:4px;font-size:11px;color:#94A3B8;">支持导入 JSON 格式试卷文件，或到教师端创建新试卷</div>
+        <div class="upload-hint" style="margin-top:4px;font-size:11px;color:#94A3B8;">支持导入任意格式试卷文件（JSON/TXT/DOCX/PDF等），系统自动识别解析</div>
     </div>
 
     <!-- 姓名输入 -->
@@ -106,7 +106,7 @@
     <!-- 模式切换 -->
     <div class="mode-tabs">
         <button class="mode-btn active" id="modeUploadBtn" onclick="_0x71b7()">
-            <span class="mode-icon">📁</span>上传图片
+            <span class="mode-icon">📁</span>上传文件
         </button>
         <button class="mode-btn" id="modeCameraBtn" onclick="_0x0eaad7('camera')">
             <span class="mode-icon">📷</span>拍照识别
@@ -117,9 +117,9 @@
     <div id="modeUpload">
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <span class="upload-icon">📤</span>
-            <div class="upload-text">点击或拖拽试卷图片到此处</div>
-            <div class="upload-hint">支持 JPG、PNG 格式，建议清晰拍摄</div>
-            <input type="file" id="fileInput" accept="image/*" onchange="_0x1160(event)">
+            <div class="upload-text">点击或拖拽试卷文件到此处</div>
+            <div class="upload-hint">支持任意文件格式（JPG、PNG、PDF、DOCX等），建议清晰拍摄或扫描件</div>
+            <input type="file" id="fileInput" onchange="_0x1160(event)">
         </div>
     </div>
 
@@ -350,14 +350,25 @@ if (exam) {
 _0xcf33b(`已选择「${exam.name}」，共 ${exam.questions.length} 题 ${exam.total_score} 分`, 'info');
 }
 }
-// 导入试卷文件（JSON格式）
+// 导入试卷文件（支持任意格式，自动识别）
 function _0x4e8c2f(event) {
 const file = event.target.files[0];
 if (!file) return;
 const reader = new FileReader();
 reader.onload = function(e) {
 try {
-const data = JSON.parse(e.target.result);
+let data = null;
+const content = e.target.result;
+// 尝试JSON解析
+if (typeof content === 'string') {
+try { data = JSON.parse(content); } catch(je) {
+// 非JSON文本：尝试按行解析为简单题目格式
+const _0x1a9b3c = content.split(/[\r\n]+/).map(l=>l.trim()).filter(l=>l.length>1);
+if (_0x1a9b3c.length >= 2) {
+data = { name: file.name.replace(/\.[^.]+$/,''), questions: _0x1a9b3c.map((l,i)=>({ id:'imp_'+Date.now()+'_'+i, number:i+1, text:l, answer:'', score:Math.floor(100/_0x1a9b3c.length), keywords:'' })) };
+} else { _0xcf33b('文件内容无法识别为试卷格式，请使用JSON或每行一题的TXT文件', 'error'); return; }
+}
+} else { _0xcf33b('无法读取二进制文件内容，请使用文本或JSON格式', 'error'); return; }
 if (!data.name || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
 _0xcf33b('试卷格式错误：需要包含 name（名称）和 questions（题目数组）', 'error'); return;
 }
@@ -372,7 +383,7 @@ document.getElementById('examSelect').value = data.id;
 _0x7626e();
 _0xcf33b(`✅ 试卷「${data.name}」导入成功！共 ${data.questions.length} 题 ${data.total_score} 分`, 'success');
 } catch(err) {
-_0xcf33b('JSON解析失败，请检查文件格式是否正确', 'error'); }
+_0xcf33b('文件读取失败：' + (err.message || '未知错误'), 'error'); }
 };
 reader.readAsText(file, 'utf-8');
 event.target.value = '';
