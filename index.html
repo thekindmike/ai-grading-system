@@ -234,12 +234,20 @@ if (raw) _0xce18e9 = JSON.parse(raw);
 if (!_0xce18e9.exams) _0xce18e9.exams = [];
 if (!_0xce18e9.results) _0xce18e9.results = [];
 } catch(e) { _0xce18e9 = { exams: [], results: [] }; }
-if (_0xce18e9.exams.length === 0) {
+const _0x4a8c2 = _0xce18e9.exams.findIndex(e => e.id === 'demo_001' || e.id === 'demo_exam_01');
+if (_0x4a8c2 >= 0) { _0xce18e9.exams.splice(_0x4a8c2, 1); }
+const _0xd9e11 = new Set();
+_0xce18e9.exams = _0xce18e9.exams.filter(e => {
+if (_0xd9e11.has(e.name)) return false;
+_0xd9e11.add(e.name);
+return true;
+});
+if (!_0xce18e9.exams.find(e => e.id === 'demo_001')) {
 _0xce18e9.exams.push({
 id: 'demo_001',
-name: '七年级地理-巴西章节测试',
+name: '七年级地理·巴西章节测试',
 total_score: 100,
-created_at: new Date().toLocaleString('zh-CN'),
+created_at: '2026-06-20',
 questions: [
 { id:1, number:1, text:'巴西位于哪个大洲？', answer:'南美洲', score:10, keywords:'南美洲,南美' },
 { id:2, number:2, text:'巴西的官方语言是什么？', answer:'葡萄牙语', score:10, keywords:'葡萄牙语,葡萄牙' },
