@@ -1,0 +1,16 @@
+# 忽略文件
+*.pyc
+__pycache__/
+venv/
+data/grading.db
+*.log
+
+# 保留原始版本备份但不推送到GitHub（已混淆版本在index.html）
+index_original.html
+index_local.html
+index_obfuscated.html
+
+# 临时文件
+*.tmp
+*.bak
+.DS_Store
